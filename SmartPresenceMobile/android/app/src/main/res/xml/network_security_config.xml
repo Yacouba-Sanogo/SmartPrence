@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Depuis Android 9, le trafic HTTP en clair est refusé par défaut. SmartPresence
+  s'adresse au serveur en HTTP simple pendant le développement et sur le réseau
+  local de l'établissement : sans cette configuration, chaque appel échoue avant
+  même de partir, et l'application affiche « Serveur injoignable » sans que rien
+  n'apparaisse côté serveur.
+
+  Le clair n'est ouvert que pour les hôtes nommés ci-dessous. Tout autre domaine
+  reste soumis à HTTPS : c'est ce qui distingue cette configuration d'un
+  android:usesCleartextTraffic="true", qui l'autoriserait partout.
+
+  Pour déployer sur un serveur du réseau de l'ENETP, ajouter son adresse ici.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- L'hôte de développement, vu depuis l'émulateur Android. -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- L'appareil lui-même, pour un serveur embarqué ou un tunnel adb. -->
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+
+</network-security-config>

@@ -1,0 +1,63 @@
+#====================================================================
+# Profil de test d'intégration
+#
+# Les tests s'exécutent sur un VRAI MySQL, dans un schéma dédié
+# (smartpresence_test), recréé puis supprimé à chaque exécution.
+#
+# Ce choix est délibéré : le défaut le plus coûteux rencontré sur ce
+# projet — les identifiants UUID stockés en BINARY(36) et interrogés
+# avec un paramètre de 16 octets — était propre à MySQL et produisait
+# un résultat vide sans lever la moindre erreur. Une base en mémoire
+# comme H2 ne l'aurait jamais révélé : elle aurait donné des tests
+# verts sur un système non fonctionnel.
+#
+# Prérequis : un serveur MySQL joignable. Le schéma est créé
+# automatiquement (createDatabaseIfNotExist).
+#====================================================================
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${TEST_DB_NAME:smartpresence_test}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Yacouba@2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # Schéma reconstruit à chaque exécution : les tests partent
+      # toujours d'une base vierge et ne laissent rien derrière eux.
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+        type:
+          preferred_uuid_jdbc_type: CHAR
+    open-in-view: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+app:
+  security:
+    jwt:
+      secret: dGVzdC1zZWNyZXQta2V5LXBvdXItbGVzLXRlc3RzLWRpbnRlZ3JhdGlvbi0yNTYtYml0cy1sb25n
+      expiration-ms: 3600000
+      refresh-expiration-ms: 86400000
+    bootstrap:
+      email: admin.test@smartpresence.local
+      password: MotDePasseDeTest2026
+      nom: Administrateur
+      prenom: Test
+
+logging:
+  level:
+    root: WARN
+    com.smartpresence: INFO
+    org.hibernate.SQL: WARN
+    # « create-drop » tente de supprimer les tables avant de les créer : sur un
+    # schéma neuf, chaque DROP échoue et produit un avertissement bruyant sans
+    # aucune conséquence. On les masque pour que les vrais échecs restent lisibles.
+    org.hibernate.tool.schema: ERROR

@@ -1,0 +1,39 @@
+# --- Secrets ---------------------------------------------------------------
+# Ne jamais versionner : identifiants Wi-Fi, URL du serveur et cle d'API du
+# lecteur. Le modele a suivre est SmartPresenceEsp32/src/identifiants.exemple.h.
+SmartPresenceEsp32/src/identifiants.h
+**/application-local.yml
+**/application-local.yaml
+.env
+.env.*
+!.env.example
+
+# --- Dependances et caches d'outillage --------------------------------------
+node_modules/
+.angular/
+.dart_tool/
+BackendSmartPresence/.m2/
+**/.gradle/
+
+# --- Sorties de compilation --------------------------------------------------
+dist/
+build/
+target/
+*.apk
+*.aab
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+SmartPresenceEsp32/.pio/
+
+# --- Environnements de developpement -----------------------------------------
+.idea/
+.vscode/
+*.iml
+.claude/settings.local.json
+
+# --- Systeme ------------------------------------------------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log

@@ -1,0 +1,123 @@
+#====================================================================
+# SmartPresence — Backend
+# Fichier de configuration principal de l'application Spring Boot
+# Référence : SmartPresence_CONTEXT.md
+#====================================================================
+
+server:
+  port: 8080
+  # Encodage UTF-8 partout (requêtes/réponses) — important pour les
+  # chaînes accentuées (noms d'étudiants, enseignants, etc.)
+  servlet:
+    context-path: /api
+
+spring:
+  #---------------------------------------------------------------
+  # Application
+  #---------------------------------------------------------------
+  application:
+    name: BackendSmartPresence
+
+  #---------------------------------------------------------------
+  # Persistance — MySQL + Hibernate / JPA
+  #---------------------------------------------------------------
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smartpresence_db}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: ${DB_USERNAME:root}
+    # ⚠️ Ne jamais committer de mot de passe réel. Fournir DB_PASSWORD via
+    #    variable d'environnement (ou un application-local.yml ignoré par git).
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    # Hibernate génère/maintient le schéma. En développement, 'update' crée les
+    # tables manquantes et conserve les données. La validation stricte et les
+    # migrations Flyway seront introduites en fin de projet (production-ready).
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        #-----------------------------------------------------------
+        # Représentation des identifiants UUID en base : CHAR(36).
+        #
+        # Par défaut, Hibernate 6 mappe UUID en binaire. Combiné aux
+        # @Column(length = 36) des entités — qui visaient la forme
+        # canonique en 36 caractères — cela produisait des colonnes
+        # BINARY(36) : MySQL complétait les valeurs stockées avec 20
+        # octets de zéros, tandis qu'Hibernate liait ses paramètres sur
+        # 16 octets. Aucune recherche par UUID ne pouvait donc aboutir,
+        # et l'échec était SILENCIEUX (résultat vide, jamais d'erreur).
+        #
+        # Ce réglage global vaut mieux qu'un @JdbcTypeCode par champ :
+        # il ne peut pas être oublié sur une entité future, et rend les
+        # identifiants lisibles à l'œil en base.
+        #-----------------------------------------------------------
+        type:
+          preferred_uuid_jdbc_type: CHAR
+    open-in-view: false   # Désactivé : anti-pattern évité en architecture propre
+
+  #---------------------------------------------------------------
+  # Sérialisation JSON (Jackson)
+  #---------------------------------------------------------------
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+#====================================================================
+# Sécurité & JWT  (valeurs par défaut — à surcharger par variables
+# d'environnement en production ; non implémenté à cette étape)
+#====================================================================
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:Y2hhbmdlLW1lLXNlY3JldC1rZXktZm9yLXNtYXJ0cHJlc2VuY2UtMjU2LWJpdHMtbG9uZy1zZWN1cmU}
+      expiration-ms: ${JWT_EXPIRATION_MS:3600000}            # 1 heure
+      refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:86400000}  # 24 heures
+    # Clé d'API dédiée aux appareils ESP32 (cf. SmartPresence_CONTEXT.md §7.2)
+    device-api-key: ${DEVICE_API_KEY:dev-device-api-key-change-me}
+
+    # Compte administrateur d'amorçage, créé au tout premier démarrage
+    # (uniquement si la table des utilisateurs est vide).
+    #
+    # Le mot de passe n'a volontairement AUCUNE valeur par défaut : laissé vide,
+    # il est tiré au hasard et imprimé une seule fois dans la console de démarrage.
+    # Un identifiant par défaut connu serait une porte ouverte sur toute
+    # installation dont l'exploitant a oublié de le changer.
+    # Domaine des adresses de connexion fabriquées pour les étudiants dépourvus
+    # d'email personnel : « <matricule>@<domaine> ».
+    domaine-etudiants: ${DOMAINE_ETUDIANTS:etudiant.smartpresence.local}
+
+    bootstrap:
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpresence.local}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      # Le prénom est ce que l'interface affiche en salutation : « Administrateur »
+      # y sonne juste, l'inverse donnait « Bonjour, SmartPresence ».
+      nom: ${BOOTSTRAP_ADMIN_NOM:SmartPresence}
+      prenom: ${BOOTSTRAP_ADMIN_PRENOM:Administrateur}
+
+#====================================================================
+# Swagger / OpenAPI (springdoc-openapi)
+#====================================================================
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  default-produces-media-type: application/json
+
+#====================================================================
+# Journalisation (logs)
+#====================================================================
+logging:
+  level:
+    root: INFO
+    com.smartpresence: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

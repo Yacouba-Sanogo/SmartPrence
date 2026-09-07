@@ -1,0 +1,47 @@
+#============================================================
+# SmartPresence — Backend .gitignore
+#============================================================
+
+#---------- Maven / Build ----------
+target/
+build/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+#---------- IDE : IntelliJ IDEA ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+#---------- IDE : Eclipse / STS ----------
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+
+#---------- IDE : VS Code ----------
+.vscode/
+
+#---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+#---------- Logs ----------
+*.log
+logs/
+
+#---------- Runtime / Secrets ----------
+*.p12
+*.jks
+*.key
+*.pem
+application-local.yml
+application-secret.yml
+
+#---------- Docker ----------
+*.env
+!.env.example

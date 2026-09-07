@@ -1,0 +1,50 @@
+#============================================================
+# SmartPresence — Backend docker-compose.yml
+# Démarre MySQL + le backend Spring Boot
+# Usage : docker compose up --build
+#============================================================
+
+services:
+
+  #--------------------------------------------------------
+  # Base de données MySQL 8
+  #--------------------------------------------------------
+  mysql:
+    image: mysql:8.4
+    container_name: smartpresence-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-smartpresence_db}
+      TZ: UTC
+    ports:
+      - "3306:3306"
+    volumes:
+      - smartpresence-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  #--------------------------------------------------------
+  # Backend Spring Boot
+  #--------------------------------------------------------
+  backend:
+    build: .
+    container_name: smartpresence-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-smartpresence_db}
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "8080:8080"
+
+volumes:
+  smartpresence-mysql-data:

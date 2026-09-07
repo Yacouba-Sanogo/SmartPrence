@@ -1,0 +1,4 @@
+.pio/
+.vscode/
+# La cle d'API et le mot de passe Wi-Fi ne doivent jamais entrer dans le depot.
+src/identifiants.h
