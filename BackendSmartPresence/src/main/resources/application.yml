@@ -5,7 +5,9 @@
 #====================================================================
 
 server:
-  port: 8080
+  # Render — comme la plupart des plateformes — impose le port par la
+  # variable PORT ; en local, 8080 reste la valeur par défaut.
+  port: ${PORT:8080}
   # Encodage UTF-8 partout (requêtes/réponses) — important pour les
   # chaînes accentuées (noms d'étudiants, enseignants, etc.)
   servlet:
@@ -22,11 +24,14 @@ spring:
   # Persistance — MySQL + Hibernate / JPA
   #---------------------------------------------------------------
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smartpresence_db}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    username: ${DB_USERNAME:root}
+    # En production, la base est managée : TLS obligatoire et schéma déjà créé.
+    # DB_URL fournit alors l'URL complète ; sans elle, les DB_* conservent
+    # exactement le comportement de développement.
+    url: jdbc:${DB_URL}
+    username: ${DB_USERNAME}
     # ⚠️ Ne jamais committer de mot de passe réel. Fournir DB_PASSWORD via
     #    variable d'environnement (ou un application-local.yml ignoré par git).
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

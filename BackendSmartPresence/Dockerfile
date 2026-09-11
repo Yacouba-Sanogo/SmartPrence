@@ -28,8 +28,23 @@ WORKDIR /app
 # Copie uniquement le JAR exécutable
 COPY --from=builder /workspace/target/*.jar app.jar
 
-# Variables surchargeables au run
-ENV SERVER_PORT=8080
+# Variables surchargeables au run.
+#
+# PORT (et non SERVER_PORT) : une variable d'environnement SERVER_PORT
+# l'emporte sur la configuration Spring et figerait le port à 8080, alors
+# que les plateformes type Render imposent le leur via PORT.
+ENV PORT=8080
+
+# Sur un conteneur de 512 Mo (offre gratuite Render), la JVM ne s'alloue par
+# défaut que 25 % de la mémoire — environ 128 Mo de tas, insuffisant pour
+# Spring Boot + Hibernate. Le ramasse-miettes série coûte moins cher en
+# mémoire et en CPU sur une machine mono-cœur.
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC"
+
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Forme « shell » indispensable : JAVA_OPTS doit être développé au démarrage.
+# « exec » fait de la JVM le processus n°1 du conteneur : sans lui, le SIGTERM
+# envoyé lors d'un redéploiement s'arrêterait au shell et Spring ne fermerait
+# jamais proprement ses connexions à la base.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
