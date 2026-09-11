@@ -103,6 +103,22 @@ app:
       nom: ${BOOTSTRAP_ADMIN_NOM:SmartPresence}
       prenom: ${BOOTSTRAP_ADMIN_PRENOM:Administrateur}
 
+      # Administrateur fixe.
+      #
+      # Le compte d'amorçage n'est créé qu'une fois, sur une base vide, et son mot de
+      # passe aléatoire n'est affiché qu'à ce démarrage-là : perdu, il est
+      # irrécupérable, et l'API n'expose aucun changement de mot de passe.
+      #
+      # À `true`, chaque démarrage garantit l'existence du compte ci-dessus avec le
+      # mot de passe de BOOTSTRAP_ADMIN_PASSWORD — il est créé s'il manque, remis à
+      # jour s'il existe. Laissée active, la variable fige donc durablement les
+      # identifiants de l'administrateur ; mise à `true` le temps d'un seul
+      # démarrage, elle sert de simple réinitialisation.
+      #
+      # Le garde-fou n'est pas le secret mais la possession : seul qui contrôle les
+      # variables d'environnement du serveur peut s'en servir.
+      administrateur-fixe: ${BOOTSTRAP_ADMIN_FIXE:false}
+
 #====================================================================
 # Swagger / OpenAPI (springdoc-openapi)
 #====================================================================

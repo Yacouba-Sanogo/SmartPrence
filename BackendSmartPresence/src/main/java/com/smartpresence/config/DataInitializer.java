@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -48,12 +50,16 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.security.bootstrap.prenom}")
     private String prenomAmorcage;
 
+    @Value("${app.security.bootstrap.administrateur-fixe:false}")
+    private boolean administrateurFixe;
+
     @Override
     @Transactional
     public void run(String... args) {
         seedRoles();
         seedParametresEtablissement();
         seedAdministrateurAmorcage();
+        garantirAdministrateurFixe();
     }
 
     private void seedRoles() {
@@ -147,6 +153,73 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Compte administrateur d'amorçage créé pour {} (mot de passe fourni par configuration)",
                     emailAmorcage);
         }
+    }
+
+    /**
+     * Garantit l'existence d'un administrateur aux identifiants connus, sur demande
+     * explicite de l'exploitant.
+     *
+     * <p>L'amorçage ordinaire ne joue qu'une fois, sur une base vide, et tire un mot de
+     * passe aléatoire affiché ce jour-là seulement. Parfait pour une installation
+     * neuve ; sans recours le jour où ce mot de passe se perd, puisque le hachage ne
+     * se renverse pas et qu'aucun endpoint ne permet d'en changer.</p>
+     *
+     * <p>Activée, cette option crée le compte s'il manque et réimpose son mot de passe
+     * s'il existe. Le rôle {@code ADMIN} lui est ajouté <b>sans effacer</b> ses autres
+     * rôles : remplacer l'ensemble ferait perdre silencieusement des habilitations.</p>
+     *
+     * <p>Le garde-fou n'est pas le secret mais la <b>possession</b> : seules les mains
+     * qui contrôlent les variables d'environnement du serveur peuvent déclencher cela,
+     * et elles pourraient de toute façon tout reconfigurer.</p>
+     */
+    private void garantirAdministrateurFixe() {
+        if (!administrateurFixe) {
+            // Tracé volontairement : sans lui, une variable mal orthographiée côté
+            // hébergeur ne produirait aucun message, et l'absence d'effet passerait
+            // pour une panne. Le journal applicatif est en DEBUG.
+            log.debug("Administrateur fixe : non demandé.");
+            return;
+        }
+
+        if (!StringUtils.hasText(motDePasseAmorcage)) {
+            log.error("Administrateur fixe demandé sans BOOTSTRAP_ADMIN_PASSWORD : "
+                    + "aucun mot de passe à poser, le compte reste inchangé.");
+            return;
+        }
+
+        Role roleAdmin = roleRepository.findByCode(RoleCode.ADMIN.name())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Le rôle ADMIN doit exister avant de fixer le compte administrateur"));
+
+        Optional<Utilisateur> existant = utilisateurRepository.findByEmail(emailAmorcage);
+        Utilisateur administrateur = existant.orElseGet(Utilisateur::new);
+
+        if (existant.isEmpty()) {
+            administrateur.setEmail(emailAmorcage);
+            administrateur.setNom(nomAmorcage);
+            administrateur.setPrenom(prenomAmorcage);
+        }
+
+        Set<Role> roles = new HashSet<>(
+                administrateur.getRoles() == null ? Set.of() : administrateur.getRoles());
+        roles.add(roleAdmin);
+
+        administrateur.setMotDePasse(passwordEncoder.encode(motDePasseAmorcage));
+        administrateur.setActif(true);
+        administrateur.setRoles(roles);
+        utilisateurRepository.save(administrateur);
+
+        log.warn("""
+
+                ================================================================
+                 ADMINISTRATEUR FIXE {}
+                 Compte : {}
+                 Le mot de passe est celui de BOOTSTRAP_ADMIN_PASSWORD.
+                 Tant que BOOTSTRAP_ADMIN_FIXE reste à true, il sera réimposé
+                 à chaque démarrage : c'est voulu pour un compte permanent,
+                 à retirer si le besoin n'était que de reprendre la main.
+                ================================================================
+                """, existant.isEmpty() ? "CRÉÉ" : "MIS À JOUR", emailAmorcage);
     }
 
 }

@@ -1,0 +1,88 @@
+#============================================================
+# SmartPresence — Blueprint Render
+#
+# Décrit le service backend tel que Render doit le construire.
+# Utilisation : Render → New → Blueprint → choisir ce dépôt.
+#
+# Ce fichier ne contient AUCUN secret : les variables marquées
+# « sync: false » sont demandées au moment de la création du
+# service, puis conservées par Render.
+#
+# La base de données n'y figure pas : Render ne propose pas de
+# MySQL managé, elle est donc hébergée ailleurs et fournie par
+# la seule variable DB_URL (cf. docs/DEPLOIEMENT_RENDER.md).
+#============================================================
+
+services:
+  - type: web
+    name: smartprence
+    runtime: docker
+    plan: free
+    region: frankfurt
+
+    # Dépôt multi-projets. Les deux chemins ci-dessous partent de la RACINE du
+    # dépôt — et non l'un de l'autre : c'est ce malentendu qui produit l'erreur
+    # « failed to read dockerfile: ... /src: is a directory », BuildKit ouvrant
+    # alors un dossier à la place du fichier.
+    #
+    #   dockerContext  : ce que « COPY » peut atteindre (donc le dossier backend)
+    #   dockerfilePath : le fichier lui-même, chemin complet depuis la racine
+    dockerContext: BackendSmartPresence
+    dockerfilePath: BackendSmartPresence/Dockerfile
+
+    # Endpoint public et non authentifié (springdoc) : il prouve que le
+    # contexte Spring est réellement monté, pas seulement que le port écoute.
+    healthCheckPath: /api/v3/api-docs
+
+    autoDeploy: true
+
+    envVars:
+      # jdbc:mysql://<hote>:<port>/<base>?sslMode=REQUIRED&serverTimezone=UTC
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+
+      # ⚠️ Au moins 32 caractères : la clé HMAC-SHA256 est construite sur les
+      #    octets bruts du secret (cf. JwtUtils#signingKey).
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Doit être recopiée à l'identique dans SmartPresenceEsp32/src/identifiants.h
+      - key: DEVICE_API_KEY
+        generateValue: true
+
+      # Compte administrateur créé au tout premier démarrage, base vide.
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+
+  #--------------------------------------------------------
+  # Frontend Angular — site statique
+  #
+  # Le code appelle « /api » en même origine et ne connaît donc aucune adresse
+  # de serveur. La règle de réécriture ci-dessous fait suivre ces appels au
+  # backend : pas de CORS à ouvrir, et l'application reste déplaçable.
+  #--------------------------------------------------------
+  - type: web
+    name: smartpresence-frontend
+    runtime: static
+
+    # Chemins comptés depuis la racine du dépôt, comme pour le backend.
+    buildCommand: cd SmartPresenceFrontend && npm ci && npm run build
+    staticPublishPath: SmartPresenceFrontend/dist/smart-presence-frontend/browser
+
+    routes:
+      # L'ordre compte : sans cette première règle, les appels à /api seraient
+      # avalés par le repli ci-dessous et recevraient la page d'accueil.
+      - type: rewrite
+        source: /api/*
+        destination: https://smartprence.onrender.com/api/*
+
+      # Application à page unique : toute autre adresse est rendue par Angular.
+      - type: rewrite
+        source: /*
+        destination: /index.html

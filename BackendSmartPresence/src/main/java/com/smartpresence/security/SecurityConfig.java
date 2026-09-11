@@ -78,6 +78,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/refresh",
+                                // Surveillance externe : maintient l'instance éveillée
+                                // (cf. PingController). Ne révèle rien.
+                                "/ping",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
