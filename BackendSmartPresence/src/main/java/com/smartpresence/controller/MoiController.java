@@ -6,6 +6,7 @@ import com.smartpresence.constants.PeriodeScolaire;
 import com.smartpresence.dto.request.NoteRequest;
 import com.smartpresence.dto.response.BulletinResponse;
 import com.smartpresence.dto.response.ClasseResponse;
+import com.smartpresence.dto.response.DemandeEnrolementResponse;
 import com.smartpresence.dto.response.NoteResponse;
 import com.smartpresence.dto.response.EffectifEtudiantResponse;
 import com.smartpresence.dto.response.FeuilleSeanceResponse;
@@ -18,6 +19,7 @@ import com.smartpresence.dto.response.SeanceResponse;
 import com.smartpresence.dto.response.SignalementResponse;
 import com.smartpresence.dto.response.StatistiquesEtudiantResponse;
 import com.smartpresence.security.CustomUserDetails;
+import com.smartpresence.service.EnrolementService;
 import com.smartpresence.service.ProfilService;
 import com.smartpresence.service.JustificationService;
 import com.smartpresence.service.AcademicService;
@@ -70,6 +72,7 @@ public class MoiController {
     private final JustificationService justificationService;
     private final NoteService noteService;
     private final AcademicService academicService;
+    private final EnrolementService enrolementService;
 
     @GetMapping("/profil")
     @PreAuthorize("isAuthenticated()")
@@ -141,6 +144,45 @@ public class MoiController {
                         profilService.etudiantDuCompte(utilisateur.getId()).getId(),
                         motif, dateAbsence, seanceId),
                 "Justificatif transmis à la scolarité"));
+    }
+
+    // ------------------------------------------------------------------
+    // Enrôlement biométrique en libre-service
+    // ------------------------------------------------------------------
+
+    @PostMapping("/enrolement")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Demander l'enrôlement de mon empreinte",
+            description = "Ouvre un rendez-vous avec le lecteur et rend un code à six "
+                    + "chiffres. L'étudiant retrouve ce code sur l'écran du capteur avant "
+                    + "de poser le doigt : c'est ce qui garantit que la capture est bien "
+                    + "portée à son dossier. Rappeler cette adresse ne crée pas un second "
+                    + "code tant que le premier court.")
+    public ResponseEntity<ApiResponse<DemandeEnrolementResponse>> demanderEnrolement(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                enrolementService.demander(utilisateur.getId()),
+                "Présentez-vous devant un lecteur et vérifiez le code affiché"));
+    }
+
+    @GetMapping("/enrolement")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Où en est ma demande d'enrôlement",
+            description = "Interrogée par l'application pendant que l'étudiant attend "
+                    + "devant le capteur, pour basculer l'écran dès que l'empreinte est prise.")
+    public ResponseEntity<ApiResponse<DemandeEnrolementResponse>> monEnrolement(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enrolementService.maDemande(utilisateur.getId())));
+    }
+
+    @DeleteMapping("/enrolement")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Renoncer à ma demande d'enrôlement")
+    public ResponseEntity<ApiResponse<DemandeEnrolementResponse>> annulerEnrolement(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enrolementService.annuler(utilisateur.getId()), "Demande annulée"));
     }
 
     // ------------------------------------------------------------------

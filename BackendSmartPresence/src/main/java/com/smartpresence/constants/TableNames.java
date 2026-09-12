@@ -43,6 +43,7 @@ public final class TableNames {
     public static final String HISTORIQUES_SYNCHRONISATION = "historiques_synchronisation";
     public static final String SIGNALEMENTS_PRESENCE = "signalements_presence";
     public static final String NUMEROS_CENOU = "numeros_cenou";
+    public static final String DEMANDES_ENROLEMENT = "demandes_enrolement";
 
     // ---------------- Tables de jointure ----------------
     public static final String JOIN_UTILISATEURS_ROLES = "utilisateurs_roles";
