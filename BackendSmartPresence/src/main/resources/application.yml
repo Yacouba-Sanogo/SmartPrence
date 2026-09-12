@@ -64,6 +64,19 @@ spring:
     open-in-view: false   # Désactivé : anti-pattern évité en architecture propre
 
   #---------------------------------------------------------------
+  # Envoi de fichiers — import du référentiel CENOU
+  #
+  # La limite d'un mégaoctet par défaut suffirait à une liste de numéros, mais
+  # pas aux classeurs enrichis d'images ou de mises en forme que produisent les
+  # secrétariats. Dix mégaoctets laissent la marge sans ouvrir la porte à un
+  # dépôt abusif.
+  #---------------------------------------------------------------
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+
+  #---------------------------------------------------------------
   # Sérialisation JSON (Jackson)
   #---------------------------------------------------------------
   jackson:
@@ -96,7 +109,7 @@ app:
     domaine-etudiants: ${DOMAINE_ETUDIANTS:etudiant.smartpresence.local}
 
     bootstrap:
-      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpresence.local}
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpresence}
       password: ${BOOTSTRAP_ADMIN_PASSWORD:}
       # Le prénom est ce que l'interface affiche en salutation : « Administrateur »
       # y sonne juste, l'inverse donnait « Bonjour, SmartPresence ».
@@ -109,15 +122,19 @@ app:
       # passe aléatoire n'est affiché qu'à ce démarrage-là : perdu, il est
       # irrécupérable, et l'API n'expose aucun changement de mot de passe.
       #
-      # À `true`, chaque démarrage garantit l'existence du compte ci-dessus avec le
-      # mot de passe de BOOTSTRAP_ADMIN_PASSWORD — il est créé s'il manque, remis à
-      # jour s'il existe. Laissée active, la variable fige donc durablement les
-      # identifiants de l'administrateur ; mise à `true` le temps d'un seul
-      # démarrage, elle sert de simple réinitialisation.
+      # Actif par défaut : chaque démarrage garantit l'existence du compte ci-dessus
+      # avec le mot de passe de BOOTSTRAP_ADMIN_PASSWORD — créé s'il manque, remis à
+      # jour s'il existe. C'est ce qui rend l'accès à l'administration reproductible,
+      # y compris sur une base déjà peuplée où l'amorçage ordinaire ne joue plus.
+      #
+      # Le mot de passe reste hors du dépôt, dans la seule variable d'environnement :
+      # l'inscrire ici l'exposerait à quiconque ouvre le projet.
+      #
+      # À passer à `false` dès qu'un compte administrateur nominatif prend le relais.
       #
       # Le garde-fou n'est pas le secret mais la possession : seul qui contrôle les
       # variables d'environnement du serveur peut s'en servir.
-      administrateur-fixe: ${BOOTSTRAP_ADMIN_FIXE:false}
+      administrateur-fixe: ${BOOTSTRAP_ADMIN_FIXE:true}
 
 #====================================================================
 # Swagger / OpenAPI (springdoc-openapi)

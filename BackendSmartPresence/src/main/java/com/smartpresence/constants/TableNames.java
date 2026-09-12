@@ -42,6 +42,7 @@ public final class TableNames {
     public static final String DEVICES = "devices";
     public static final String HISTORIQUES_SYNCHRONISATION = "historiques_synchronisation";
     public static final String SIGNALEMENTS_PRESENCE = "signalements_presence";
+    public static final String NUMEROS_CENOU = "numeros_cenou";
 
     // ---------------- Tables de jointure ----------------
     public static final String JOIN_UTILISATEURS_ROLES = "utilisateurs_roles";
@@ -50,6 +51,7 @@ public final class TableNames {
     // ---------------- Noms de colonnes usuels (pour contraintes uniques) ----------------
     public static final String COL_EMAIL = "email";
     public static final String COL_MATRICULE = "matricule";
+    public static final String COL_NUMERO = "numero";
     public static final String COL_BIOMETRIC_ID = "biometric_id";
     public static final String COL_API_KEY_HASH = "api_key_hash";
     public static final String COL_ADRESSE_MAC = "adresse_mac";

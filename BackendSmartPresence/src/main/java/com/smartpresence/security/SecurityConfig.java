@@ -81,6 +81,11 @@ public class SecurityConfig {
                                 // Surveillance externe : maintient l'instance éveillée
                                 // (cf. PingController). Ne révèle rien.
                                 "/ping",
+                                // Inscription libre : un candidat n'a, par
+                                // définition, pas encore de compte. Le verrou
+                                // est le numéro CENOU, pas le jeton.
+                                "/inscription",
+                                "/inscription/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
