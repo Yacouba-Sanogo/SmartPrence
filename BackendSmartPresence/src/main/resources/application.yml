@@ -136,6 +136,23 @@ app:
       # variables d'environnement du serveur peut s'en servir.
       administrateur-fixe: ${BOOTSTRAP_ADMIN_FIXE:true}
 
+  # ------------------------------------------------------------------
+  # Regles de calcul du releve de notes (LMD)
+  # ------------------------------------------------------------------
+  notes:
+    # Moyenne d'un ECUE = devoir x poids-devoir + examen x poids-examen.
+    # Regle de l'ENETP, confirmee par l'utilisateur : 40 % / 60 %.
+    # Parametrable pour qu'un changement de reglement n'impose pas de toucher au code.
+    poids-devoir: ${NOTES_POIDS_DEVOIR:0.4}
+    poids-examen: ${NOTES_POIDS_EXAMEN:0.6}
+
+    # Barre d'acquisition d'une UE, et de validation d'un semestre.
+    moyenne-validation: ${NOTES_MOYENNE_VALIDATION:10}
+
+    # Compensation : une UE sous la barre est acquise si la moyenne generale du
+    # semestre l'atteint. Les credits du semestre tombent alors d'un bloc.
+    compensation: ${NOTES_COMPENSATION:true}
+
 #====================================================================
 # Swagger / OpenAPI (springdoc-openapi)
 #====================================================================

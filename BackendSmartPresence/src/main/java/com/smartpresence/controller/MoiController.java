@@ -2,6 +2,7 @@ package com.smartpresence.controller;
 
 import com.smartpresence.dto.request.SignalementRequest;
 import com.smartpresence.dto.response.ApiResponse;
+import com.smartpresence.exception.BusinessException;
 import com.smartpresence.constants.PeriodeScolaire;
 import com.smartpresence.dto.request.NoteRequest;
 import com.smartpresence.dto.response.BulletinResponse;
@@ -14,12 +15,14 @@ import com.smartpresence.dto.response.JustificationAbsenceResponse;
 import com.smartpresence.dto.response.MatiereResponse;
 import com.smartpresence.dto.response.PagedResponse;
 import com.smartpresence.dto.response.PresenceResponse;
+import com.smartpresence.dto.response.ReleveSemestreResponse;
 import com.smartpresence.dto.response.ProfilResponse;
 import com.smartpresence.dto.response.SeanceResponse;
 import com.smartpresence.dto.response.SignalementResponse;
 import com.smartpresence.dto.response.StatistiquesEtudiantResponse;
 import com.smartpresence.security.CustomUserDetails;
 import com.smartpresence.service.EnrolementService;
+import com.smartpresence.service.ReleveService;
 import com.smartpresence.service.ProfilService;
 import com.smartpresence.service.JustificationService;
 import com.smartpresence.service.AcademicService;
@@ -73,6 +76,7 @@ public class MoiController {
     private final NoteService noteService;
     private final AcademicService academicService;
     private final EnrolementService enrolementService;
+    private final ReleveService releveService;
 
     @GetMapping("/profil")
     @PreAuthorize("isAuthenticated()")
@@ -127,6 +131,39 @@ public class MoiController {
             @RequestParam(required = false) PeriodeScolaire periode) {
         return ResponseEntity.ok(ApiResponse.success(
                 noteService.monBulletin(utilisateur.getId(), periode)));
+    }
+
+    @GetMapping("/emploi-du-temps")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Mon emploi du temps",
+            description = "Séances de ma classe sur la période demandée. Sans paramètre, "
+                    + "les sept jours à venir — ce qu'on vient chercher en ouvrant l'écran.")
+    public ResponseEntity<ApiResponse<List<SeanceResponse>>> monEmploiDuTemps(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
+        LocalDate premier = debut == null ? LocalDate.now() : debut;
+        LocalDate dernier = fin == null ? premier.plusDays(6) : fin;
+        if (dernier.isBefore(premier)) {
+            throw new BusinessException("La date de fin précède la date de début");
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                profilService.monEmploiDuTemps(utilisateur.getId(), premier, dernier)));
+    }
+
+    @GetMapping("/releve")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Mon relevé de notes",
+            description = "Vue LMD du semestre : UE, ECUE avec note de devoir et note "
+                    + "d'examen, crédits acquis et décision. Toutes les moyennes sont "
+                    + "calculées par le serveur — les recalculer ici produirait, au moindre "
+                    + "écart d'arrondi, un relevé différent de celui de l'administration. "
+                    + "Sans paramètre, le premier semestre de la maquette.")
+    public ResponseEntity<ApiResponse<ReleveSemestreResponse>> monReleve(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @RequestParam(required = false) PeriodeScolaire semestre) {
+        return ResponseEntity.ok(ApiResponse.success(
+                releveService.monReleve(utilisateur.getId(), semestre)));
     }
 
     @PostMapping("/justificatifs")

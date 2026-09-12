@@ -68,6 +68,19 @@ public interface ProfilService {
     List<SeanceResponse> mesSeances(UUID utilisateurId, LocalDate jour);
 
     /**
+     * Emploi du temps de l'étudiant connecté, sur une période.
+     *
+     * <p>Pendant de {@link #mesSeances(UUID, LocalDate)} côté étudiant : les séances de
+     * sa classe. Jusqu'ici l'emploi du temps n'était visible que de l'administration
+     * et des enseignants — l'étudiant, qui est pourtant le premier concerné par
+     * l'heure de son prochain cours, n'y avait aucun accès.</p>
+     *
+     * @param debut premier jour inclus
+     * @param fin   dernier jour inclus
+     */
+    List<SeanceResponse> monEmploiDuTemps(UUID utilisateurId, LocalDate debut, LocalDate fin);
+
+    /**
      * Effectif nominatif d'une classe où l'enseignant intervient.
      *
      * <p>L'appartenance est vérifiée : le rattachement à la classe est la seule chose qui

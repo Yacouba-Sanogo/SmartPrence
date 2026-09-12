@@ -12,6 +12,7 @@ import com.smartpresence.entity.Matiere;
 import com.smartpresence.entity.Note;
 import com.smartpresence.entity.Personnel;
 import com.smartpresence.exception.BusinessException;
+import com.smartpresence.mapper.NoteMapper;
 import com.smartpresence.exception.ResourceNotFoundException;
 import com.smartpresence.repository.ClasseRepository;
 import com.smartpresence.repository.EtudiantRepository;
@@ -59,6 +60,7 @@ public class NoteServiceImpl implements NoteService {
     private final MatiereRepository matiereRepository;
     private final PersonnelRepository personnelRepository;
     private final ClasseRepository classeRepository;
+    private final NoteMapper noteMapper;
 
     // ------------------------------------------------------------------
     // Consultation
@@ -315,26 +317,6 @@ public class NoteServiceImpl implements NoteService {
     }
 
     private NoteResponse versReponse(Note note) {
-        Etudiant etudiant = note.getEtudiant();
-        Personnel enseignant = note.getEnseignant();
-        return NoteResponse.builder()
-                .id(note.getId())
-                .etudiantId(etudiant.getId())
-                .etudiantNom(etudiant.getNom())
-                .etudiantPrenom(etudiant.getPrenom())
-                .etudiantMatricule(etudiant.getMatricule())
-                .matiereId(note.getMatiere().getId())
-                .matiereCode(note.getMatiere().getCode())
-                .matiereLibelle(note.getMatiere().getLibelle())
-                .enseignantId(enseignant.getId())
-                .enseignantNom(enseignant.getPrenom() + " " + enseignant.getNom())
-                .valeur(note.getValeur())
-                .coefficient(note.getCoefficient())
-                .type(note.getType())
-                .periode(note.getPeriode())
-                .libelle(note.getLibelle())
-                .dateEvaluation(note.getDateEvaluation())
-                .appreciation(note.getAppreciation())
-                .build();
+        return noteMapper.toResponse(note);
     }
 }

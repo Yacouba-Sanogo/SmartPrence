@@ -12,6 +12,7 @@ import com.smartpresence.dto.response.PresenceResponse;
 import com.smartpresence.dto.response.ProfilResponse;
 import com.smartpresence.dto.response.SeanceResponse;
 import com.smartpresence.dto.response.StatistiquesEtudiantResponse;
+import com.smartpresence.entity.Classe;
 import com.smartpresence.entity.Etudiant;
 import com.smartpresence.entity.Personnel;
 import com.smartpresence.entity.Presence;
@@ -159,6 +160,27 @@ public class ProfilServiceImpl implements ProfilService {
         Instant debut = jour.atStartOfDay(zone).toInstant();
         Instant fin = jour.plusDays(1).atStartOfDay(zone).toInstant();
         return seanceRepository.findParEnseignant(enseignant.getId(), debut, fin).stream()
+                .map(this::versSeanceResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SeanceResponse> monEmploiDuTemps(UUID utilisateurId, LocalDate debut, LocalDate fin) {
+        Etudiant etudiant = etudiantDuCompte(utilisateurId);
+        Classe classe = etudiant.getClasse();
+        if (classe == null) {
+            // Une inscription incomplète n'a pas d'emploi du temps, mais elle ne doit
+            // pas non plus ouvrir un écran d'erreur : l'agenda est simplement vide.
+            return List.of();
+        }
+
+        ZoneId zone = ZoneId.systemDefault();
+        return seanceRepository.findByClasseIdAndDebutBetweenOrderByDebutAsc(
+                        classe.getId(),
+                        debut.atStartOfDay(zone).toInstant(),
+                        fin.plusDays(1).atStartOfDay(zone).toInstant())
+                .stream()
                 .map(this::versSeanceResponse)
                 .toList();
     }

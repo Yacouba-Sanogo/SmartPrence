@@ -2,10 +2,15 @@ package com.smartpresence.controller;
 
 import com.smartpresence.dto.request.EnrolementBiometriqueRequest;
 import com.smartpresence.dto.request.EtudiantRequest;
+import com.smartpresence.constants.PeriodeScolaire;
 import com.smartpresence.dto.response.ApiResponse;
+import com.smartpresence.dto.response.BulletinResponse;
+import com.smartpresence.dto.response.ReleveSemestreResponse;
 import com.smartpresence.dto.response.CompteEtudiantResponse;
 import com.smartpresence.dto.response.EtudiantResponse;
 import com.smartpresence.service.EtudiantService;
+import com.smartpresence.service.NoteService;
+import com.smartpresence.service.ReleveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +28,8 @@ import java.util.UUID;
 @Tag(name = "Étudiants", description = "Référentiel des étudiants sans données biométriques")
 public class EtudiantController {
     private final EtudiantService etudiantService;
+    private final NoteService noteService;
+    private final ReleveService releveService;
     // ENSEIGNANT retire : sans classeId, cette route listait tous les etudiants de
     // l'etablissement, reference biometrique comprise. Un enseignant obtient l'effectif
     // de ses seules classes via GET /moi/classes/{classeId}/etudiants.
@@ -72,6 +79,28 @@ public class EtudiantController {
     @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
     public ResponseEntity<ApiResponse<EtudiantResponse>> fermerCompte(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(etudiantService.fermerCompte(id), "Accès mobile fermé"));
+    }
+
+    @Operation(summary = "Relevé de notes d'un étudiant",
+            description = "Vue LMD : UE, ECUE, crédits et décision du semestre. "
+                    + "Sans paramètre, le premier semestre de la maquette de sa promotion.")
+    @GetMapping("/{id}/releve")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR')")
+    public ResponseEntity<ApiResponse<ReleveSemestreResponse>> releve(
+            @PathVariable UUID id,
+            @RequestParam(required = false) PeriodeScolaire semestre) {
+        return ResponseEntity.ok(ApiResponse.success(releveService.releveDe(id, semestre)));
+    }
+
+    @Operation(summary = "Bulletin d'un étudiant",
+            description = "Vue par matière, indépendante de la maquette LMD : elle montre "
+                    + "aussi les matières qu'aucune UE ne regroupe.")
+    @GetMapping("/{id}/bulletin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR')")
+    public ResponseEntity<ApiResponse<BulletinResponse>> bulletin(
+            @PathVariable UUID id,
+            @RequestParam(required = false) PeriodeScolaire periode) {
+        return ResponseEntity.ok(ApiResponse.success(noteService.bulletinDe(id, periode)));
     }
 
     @PatchMapping("/{id}/active") @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")

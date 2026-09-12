@@ -7,6 +7,7 @@ import com.smartpresence.dto.request.SeanceRequest;
 import com.smartpresence.dto.response.MatiereResponse;
 import com.smartpresence.dto.response.SeanceResponse;
 import com.smartpresence.entity.Matiere;
+import com.smartpresence.entity.UniteEnseignement;
 import com.smartpresence.entity.Personnel;
 import com.smartpresence.entity.Salle;
 import com.smartpresence.entity.Seance;
@@ -18,6 +19,7 @@ import com.smartpresence.repository.PersonnelRepository;
 import com.smartpresence.repository.PresenceRepository;
 import com.smartpresence.repository.SalleRepository;
 import com.smartpresence.repository.SeanceRepository;
+import com.smartpresence.repository.UniteEnseignementRepository;
 import com.smartpresence.service.AcademicService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ public class AcademicServiceImpl implements AcademicService {
 
     private final PersonnelRepository personnelRepository;
     private final MatiereRepository matiereRepository;
+    private final UniteEnseignementRepository uniteEnseignementRepository;
     private final SeanceRepository seanceRepository;
     private final ClasseRepository classeRepository;
     private final SalleRepository salleRepository;
@@ -266,9 +269,25 @@ public class AcademicServiceImpl implements AcademicService {
         matiere.setLibelle(request.getLibelle().trim());
         matiere.setCredits(request.getCredits());
         matiere.setDescription(request.getDescription());
+        matiere.setUniteEnseignement(uniteDemandee(request.getUniteEnseignementId()));
         if (request.getActive() != null) {
             matiere.setActive(request.getActive());
         }
+    }
+
+    /**
+     * UE de rattachement, ou {@code null}.
+     *
+     * <p>Le détacher est un geste légitime — une matière sort d'une maquette — et se
+     * fait en omettant simplement l'identifiant.</p>
+     */
+    private UniteEnseignement uniteDemandee(Long uniteId) {
+        if (uniteId == null) {
+            return null;
+        }
+        return uniteEnseignementRepository.findById(uniteId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Unité d'enseignement", "id", uniteId));
     }
 
     private Matiere matiere(Long id) {
@@ -284,6 +303,12 @@ public class AcademicServiceImpl implements AcademicService {
                 .credits(m.getCredits())
                 .description(m.getDescription())
                 .active(m.isActive())
+                .uniteEnseignementId(m.getUniteEnseignement() == null
+                        ? null : m.getUniteEnseignement().getId())
+                .uniteEnseignementCode(m.getUniteEnseignement() == null
+                        ? null : m.getUniteEnseignement().getCode())
+                .uniteEnseignementLibelle(m.getUniteEnseignement() == null
+                        ? null : m.getUniteEnseignement().getLibelle())
                 .build();
     }
 

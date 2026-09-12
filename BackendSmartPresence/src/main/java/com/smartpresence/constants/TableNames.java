@@ -44,6 +44,7 @@ public final class TableNames {
     public static final String SIGNALEMENTS_PRESENCE = "signalements_presence";
     public static final String NUMEROS_CENOU = "numeros_cenou";
     public static final String DEMANDES_ENROLEMENT = "demandes_enrolement";
+    public static final String UNITES_ENSEIGNEMENT = "unites_enseignement";
 
     // ---------------- Tables de jointure ----------------
     public static final String JOIN_UTILISATEURS_ROLES = "utilisateurs_roles";
@@ -63,6 +64,7 @@ public final class TableNames {
     public static final String COL_ETUDIANT_ID = "etudiant_id";
     public static final String COL_MATIERE_ID = "matiere_id";
     public static final String COL_PERIODE = "periode";
+    public static final String COL_SEMESTRE = "semestre";
     public static final String COL_DATE_PRESENCE = "date_presence";
     public static final String COL_HEURE_PRESENCE = "heure_presence";
 
