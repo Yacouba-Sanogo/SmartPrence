@@ -12,6 +12,7 @@ import '../../services/etudiant_service.dart';
 import '../../widgets/anneau.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
+import 'shell_etudiant.dart';
 
 /// Accueil de l'étudiant.
 ///
@@ -161,7 +162,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
             titre: profil?.prenom ?? 'Étudiant',
             action: ActionEntete(
               icone: Icons.person_outline_rounded,
-              surTap: () => widget.surNaviguer?.call(3),
+              surTap: () => widget.surNaviguer?.call(OngletsEtudiant.profil),
             ),
           ),
           const SizedBox(height: Espaces.md + 2),
@@ -304,11 +305,11 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
       children: [
         Expanded(
           child: Tuile(
-            icone: Icons.history_rounded,
-            libelle: 'Historique',
+            icone: Icons.calendar_month_rounded,
+            libelle: 'Emploi du temps',
             teinte: Couleurs.indigo600,
             fondIcone: Couleurs.indigo50,
-            surTap: () => widget.surNaviguer?.call(1),
+            surTap: () => widget.surNaviguer?.call(OngletsEtudiant.emploiDuTemps),
           ),
         ),
         const SizedBox(width: Espaces.sm),
@@ -318,7 +319,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
             libelle: 'Mes notes',
             teinte: Couleurs.succes,
             fondIcone: Couleurs.succesFond,
-            surTap: () => widget.surNaviguer?.call(2),
+            surTap: () => widget.surNaviguer?.call(OngletsEtudiant.notes),
           ),
         ),
         const SizedBox(width: Espaces.sm),
@@ -328,7 +329,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
             libelle: 'Mon profil',
             teinte: Couleurs.alerte,
             fondIcone: Couleurs.alerteFond,
-            surTap: () => widget.surNaviguer?.call(3),
+            surTap: () => widget.surNaviguer?.call(OngletsEtudiant.profil),
           ),
         ),
       ],
@@ -348,7 +349,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
               Expanded(child: Text('Derniers relevés', style: Typo.titreSection)),
               if (recents.isNotEmpty)
                 GestureDetector(
-                  onTap: () => widget.surNaviguer?.call(1),
+                  onTap: () => widget.surNaviguer?.call(OngletsEtudiant.releves),
                   child: Text('Tout voir',
                       style: Typo.legende.copyWith(
                           color: Couleurs.indigo600, fontWeight: FontWeight.w600)),

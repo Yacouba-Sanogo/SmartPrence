@@ -4,8 +4,27 @@
     {
       "name": "smartpresence-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "SmartPresenceFrontend", "run", "start"],
+      "runtimeArgs": [
+        "--prefix",
+        "SmartPresenceFrontend",
+        "run",
+        "start"
+      ],
       "port": 4200
+    },
+    {
+      "name": "smartpresence-mobile-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5002",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "SmartPresenceMobile/build/web"
+      ],
+      "port": 5002
     }
   ]
 }

@@ -40,12 +40,37 @@ extension AffichageTypeEvaluation on TypeEvaluation {
       };
 }
 
-/// Période scolaire.
-enum PeriodeScolaire { semestre1, semestre2 }
+/// Période scolaire — les six semestres du cycle licence.
+enum PeriodeScolaire {
+  semestre1,
+  semestre2,
+  semestre3,
+  semestre4,
+  semestre5,
+  semestre6,
+}
+
+PeriodeScolaire? periodeDepuis(String? valeur) => switch (valeur) {
+      'SEMESTRE_1' => PeriodeScolaire.semestre1,
+      'SEMESTRE_2' => PeriodeScolaire.semestre2,
+      'SEMESTRE_3' => PeriodeScolaire.semestre3,
+      'SEMESTRE_4' => PeriodeScolaire.semestre4,
+      'SEMESTRE_5' => PeriodeScolaire.semestre5,
+      'SEMESTRE_6' => PeriodeScolaire.semestre6,
+      _ => null,
+    };
 
 extension AffichagePeriode on PeriodeScolaire {
-  String get code => this == PeriodeScolaire.semestre1 ? 'SEMESTRE_1' : 'SEMESTRE_2';
-  String get libelle => this == PeriodeScolaire.semestre1 ? 'Semestre 1' : 'Semestre 2';
+  /// 1 à 6.
+  int get rang => index + 1;
+
+  /// Valeur attendue par l'API.
+  String get code => 'SEMESTRE_$rang';
+
+  String get libelle => 'Semestre $rang';
+
+  /// « S1 » — l'étiquette des onglets, où la place manque.
+  String get libelleCourt => 'S$rang';
 }
 
 /// Teinte d'une note sur 20.

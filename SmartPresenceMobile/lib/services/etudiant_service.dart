@@ -1,6 +1,8 @@
 import '../core/api/client_api.dart';
 import '../models/note.dart';
 import '../models/presence.dart';
+import '../models/releve.dart';
+import '../models/seance.dart';
 import '../models/statistiques.dart';
 
 /// Données personnelles de l'étudiant connecté.
@@ -46,6 +48,31 @@ class EtudiantService {
     });
     if (donnees == null) return Bulletin.vide;
     return Bulletin.depuisJson(donnees as Map<String, dynamic>);
+  }
+
+  /// Relevé de notes LMD du semestre : UE, ECUE, crédits et décision.
+  ///
+  /// Sans semestre, le serveur rend le premier de la maquette de la promotion —
+  /// ouvrir sur un onglet vide alors qu'un seul semestre existe serait un écran
+  /// blanc pour rien.
+  Future<ReleveSemestre> monReleve({PeriodeScolaire? semestre}) async {
+    final donnees = await _client.get('/moi/releve', parametres: {
+      'semestre': semestre?.code,
+    });
+    if (donnees == null) return ReleveSemestre.vide;
+    return ReleveSemestre.depuisJson(donnees as Map<String, dynamic>);
+  }
+
+  /// Séances de ma classe sur la période. Sans dates, les sept jours à venir.
+  Future<List<Seance>> monEmploiDuTemps({DateTime? debut, DateTime? fin}) async {
+    final donnees = await _client.get('/moi/emploi-du-temps', parametres: {
+      'debut': debut == null ? null : _iso(debut),
+      'fin': fin == null ? null : _iso(fin),
+    });
+    if (donnees is! List) return const [];
+    return donnees
+        .map((e) => Seance.depuisJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<Justificatif>> mesJustificatifs() async {

@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/erreurs.dart';
 import '../../core/auth/auth_service.dart';
-import '../../core/dates.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
 import '../../models/note.dart';
+import '../../models/releve.dart';
 import '../../services/etudiant_service.dart';
 import '../../widgets/anneau.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
 
-/// Bulletin de l'étudiant.
+/// Relevé de notes de l'étudiant, au format LMD.
 ///
-/// <p>Une matière ne montre d'abord que sa moyenne : c'est ce qu'on vient chercher.
-/// Le détail des notes se déplie à la demande, sinon un bulletin de huit matières
-/// deviendrait une liste de quarante lignes où plus rien ne ressort.</p>
+/// <p>Trois niveaux de lecture, du plus synthétique au plus détaillé, parce que
+/// c'est dans cet ordre qu'on lit un relevé : la décision et les crédits d'abord —
+/// « ai-je validé ? » —, puis les UE, et enfin, à la demande, le détail des ECUE
+/// avec la note de devoir et celle d'examen.</p>
+///
+/// <p>Aucune moyenne n'est calculée ici. Elles viennent toutes du serveur : ce qui
+/// s'affiche sur le téléphone est, au centième près, ce que dit le relevé de
+/// l'administration.</p>
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key, required this.auth});
 
@@ -28,12 +33,12 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> {
   late final EtudiantService _service = EtudiantService(widget.auth.client);
 
-  Bulletin _bulletin = Bulletin.vide;
-  PeriodeScolaire? _periode;
+  ReleveSemestre _releve = ReleveSemestre.vide;
+  PeriodeScolaire? _semestre;
   bool _chargement = true;
   String? _erreur;
 
-  /// Matières dépliées, par identifiant.
+  /// UE dépliées, par identifiant.
   final Set<int> _depliees = {};
 
   @override
@@ -48,10 +53,13 @@ class _NotesScreenState extends State<NotesScreen> {
       _erreur = null;
     });
     try {
-      final bulletin = await _service.monBulletin(periode: _periode);
+      final releve = await _service.monReleve(semestre: _semestre);
       if (!mounted) return;
       setState(() {
-        _bulletin = bulletin;
+        _releve = releve;
+        // Le serveur tranche quand aucun semestre n'est demandé : on s'aligne sur
+        // sa réponse, sinon l'onglet actif ne correspondrait pas au contenu affiché.
+        _semestre ??= releve.semestre;
         _chargement = false;
       });
     } on ErreurApi catch (e) {
@@ -63,9 +71,10 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
-  void _changerPeriode(PeriodeScolaire? periode) {
+  void _changerSemestre(PeriodeScolaire semestre) {
+    if (semestre == _semestre) return;
     setState(() {
-      _periode = periode;
+      _semestre = semestre;
       _depliees.clear();
     });
     _charger();
@@ -93,6 +102,8 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  // ------------------------------------------------------------------ En-tête
+
   Widget _entete() {
     return EnteteDegrade(
       debordement: 32,
@@ -106,38 +117,36 @@ class _NotesScreenState extends State<NotesScreen> {
               style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 21)),
           const SizedBox(height: 3),
           Text(
-            _bulletin.classeLibelle ?? 'Bulletin scolaire',
+            _releve.classeLibelle ?? _releve.promotionLibelle ?? 'Relevé de notes',
             style: Typo.legende.copyWith(
                 color: Colors.white.withValues(alpha: 0.72), fontSize: 12),
           ),
           if (!_chargement && _erreur == null) ...[
             const SizedBox(height: Espaces.lg),
-            _syntheseEntete(),
+            _synthese(),
           ],
           const SizedBox(height: Espaces.md),
-          _filtresPeriode(),
+          _ongletsSemestres(),
         ],
       ),
     );
   }
 
-  Widget _syntheseEntete() {
-    final endifficulte = _bulletin.matieresEnDifficulte;
-
+  Widget _synthese() {
     return Row(
       children: [
         Anneau(
-          valeur: _bulletin.progression,
+          valeur: _releve.progression,
           taille: 76,
           epaisseur: 12,
           couleurFond: Colors.white.withValues(alpha: 0.2),
-          couleur: _bulletin.moyenneGenerale == null
+          couleur: _releve.moyenneGenerale == null
               ? Colors.white.withValues(alpha: 0.35)
-              : teinteNote(_bulletin.moyenneGenerale!),
+              : teinteNote(_releve.moyenneGenerale!),
           centre: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_bulletin.moyenneFormatee,
+              Text(_releve.moyenneFormatee,
                   style: Typo.mono(16,
                       graisse: FontWeight.w600, couleur: Colors.white)),
               Text('/ 20',
@@ -148,35 +157,30 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         const SizedBox(width: Espaces.lg - 2),
         Expanded(
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Compteur(
-                  surFondColore: true,
-                  valeur: '${_bulletin.matieres.length}',
-                  libelle: 'Matières',
-                  teinte: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Compteur(
-                  surFondColore: true,
-                  valeur: '${_bulletin.nombreNotes}',
-                  libelle: 'Notes',
-                  teinte: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Compteur(
-                  surFondColore: true,
-                  valeur: '$endifficulte',
-                  libelle: 'Sous 10',
-                  teinte: endifficulte > 0
-                      ? const Color(0xFFFF9AA8)
-                      : Couleurs.succesVif,
-                ),
+              Text('Moyenne générale',
+                  style: Typo.legende.copyWith(
+                      fontSize: 11, color: Colors.white.withValues(alpha: 0.70))),
+              const SizedBox(height: Espaces.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: Compteur(
+                      surFondColore: true,
+                      valeur: '${_releve.creditsAcquis}/${_releve.creditsRequis}',
+                      libelle: 'Crédits',
+                      teinte: _releve.creditsRequis > 0 &&
+                              _releve.creditsAcquis >= _releve.creditsRequis
+                          ? Couleurs.succesVif
+                          : Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(flex: 2, child: _badgeDecision()),
+                ],
               ),
             ],
           ),
@@ -185,43 +189,98 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  Widget _filtresPeriode() {
-    final choix = <({PeriodeScolaire? valeur, String libelle})>[
-      (valeur: null, libelle: 'Année'),
-      (valeur: PeriodeScolaire.semestre1, libelle: 'Semestre 1'),
-      (valeur: PeriodeScolaire.semestre2, libelle: 'Semestre 2'),
-    ];
+  /// La décision, en pastille pleine.
+  ///
+  /// Une couleur posée sur un voile blanc translucide, elle-même sur un dégradé
+  /// indigo, ne ressort pas : c'est pourtant la première ligne que l'étudiant
+  /// cherche. Le fond plein lui rend son évidence.
+  Widget _badgeDecision() {
+    final (Color fond, Color teinte, IconData icone) = switch (_releve.decision) {
+      DecisionSemestre.valide =>
+        (Couleurs.succesVif, Colors.white, Icons.verified_rounded),
+      DecisionSemestre.nonValide =>
+        (const Color(0xFFF2506A), Colors.white, Icons.error_outline_rounded),
+      DecisionSemestre.enAttente => (
+          Colors.white.withValues(alpha: 0.16),
+          Colors.white,
+          Icons.hourglass_empty_rounded
+        ),
+    };
 
-    return Row(
-      children: choix.map((c) {
-        final actif = _periode == c.valeur;
-        return Padding(
-          padding: const EdgeInsets.only(right: Espaces.sm - 2),
-          child: GestureDetector(
-            onTap: () => _changerPeriode(c.valeur),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: fond,
+        borderRadius: BorderRadius.circular(Rayons.md - 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(icone, size: 13, color: teinte),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  _releve.decision.libelle,
+                  style: Typo.libelle.copyWith(
+                      fontSize: 13, fontWeight: FontWeight.w700, color: teinte),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 1),
+          Text('Décision',
+              style: Typo.legende.copyWith(
+                  fontSize: 9.5, color: teinte.withValues(alpha: 0.72))),
+        ],
+      ),
+    );
+  }
+
+  /// Onglets S1 … S6 — seulement ceux où la promotion a une maquette.
+  Widget _ongletsSemestres() {
+    final semestres = _releve.semestresDisponibles;
+
+    return SizedBox(
+      height: 30,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: semestres.length,
+        separatorBuilder: (_, index) => const SizedBox(width: Espaces.sm - 2),
+        itemBuilder: (_, index) {
+          final semestre = semestres[index];
+          final actif = _semestre == semestre;
+          return GestureDetector(
+            onTap: () => _changerSemestre(semestre),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: actif ? Colors.white : Colors.white.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(Rayons.pilule),
               ),
               child: Text(
-                c.libelle,
+                semestre.libelleCourt,
                 style: Typo.legende.copyWith(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
                   color: actif
                       ? Couleurs.indigo700
                       : Colors.white.withValues(alpha: 0.82),
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        },
+      ),
     );
   }
+
+  // -------------------------------------------------------------------- Corps
 
   Widget _corps() {
     if (_chargement) {
@@ -236,7 +295,7 @@ class _NotesScreenState extends State<NotesScreen> {
           EtatVide(
             enErreur: true,
             icone: Icons.cloud_off_rounded,
-            titre: 'Bulletin indisponible',
+            titre: 'Relevé indisponible',
             detail: _erreur,
             libelleAction: 'Réessayer',
             surAction: _charger,
@@ -245,18 +304,38 @@ class _NotesScreenState extends State<NotesScreen> {
       );
     }
 
-    if (_bulletin.sansNote) {
+    if (_releve.unites.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: Espaces.xxl),
+          const EtatVide(
+            icone: Icons.account_tree_outlined,
+            titre: 'Maquette non renseignée',
+            detail: 'Les unités d’enseignement de ce semestre n’ont pas encore été '
+                'saisies par la scolarité.',
+          ),
+        ],
+      );
+    }
+
+    if (_releve.sansNote) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+            Espaces.md + 2, Espaces.md, Espaces.md + 2, Espaces.xxxl * 3),
+        children: [
+          const SizedBox(height: Espaces.lg),
           EtatVide(
             icone: Icons.school_outlined,
             titre: 'Aucune note pour l’instant',
-            detail: _periode == null
-                ? 'Vos notes apparaîtront ici dès que vos enseignants les auront saisies.'
-                : 'Aucune note sur ${_periode!.libelle.toLowerCase()}.',
+            detail: 'Vos notes du ${_releve.semestre.libelle.toLowerCase()} '
+                'apparaîtront ici dès que vos enseignants les auront saisies.',
           ),
+          const SizedBox(height: Espaces.lg),
+          // La maquette reste visible : savoir ce qui sera évalué a son intérêt,
+          // même avant la première note.
+          ..._releve.unites.map(_carteUnite),
         ],
       );
     }
@@ -265,28 +344,62 @@ class _NotesScreenState extends State<NotesScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
           Espaces.md + 2, Espaces.md, Espaces.md + 2, Espaces.xxxl * 3),
-      itemCount: _bulletin.matieres.length,
+      itemCount: _releve.unites.length + (_releve.compensationAppliquee ? 1 : 0),
       separatorBuilder: (_, index) => const SizedBox(height: Espaces.sm + 2),
-      itemBuilder: (_, index) => _carteMatiere(_bulletin.matieres[index]),
+      itemBuilder: (_, index) {
+        if (_releve.compensationAppliquee && index == _releve.unites.length) {
+          return _noteSurLaCompensation();
+        }
+        return _carteUnite(_releve.unites[index]);
+      },
     );
   }
 
-  Widget _carteMatiere(LigneMatiere matiere) {
-    final depliee = _depliees.contains(matiere.matiereId);
-    final moyenne = matiere.moyenne;
+  /// Une UE à 9 marquée « acquise » sans un mot d'explication est incompréhensible.
+  Widget _noteSurLaCompensation() {
+    return Container(
+      padding: const EdgeInsets.all(Espaces.md),
+      decoration: BoxDecoration(
+        color: Couleurs.succesFond,
+        borderRadius: BorderRadius.circular(Rayons.tuile),
+        border: Border.all(color: Couleurs.succesTrait),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, size: 16, color: Couleurs.succes),
+          const SizedBox(width: Espaces.sm),
+          Expanded(
+            child: Text(
+              'Une ou plusieurs UE sous la moyenne ont été acquises par compensation : '
+              'la moyenne générale du semestre atteint la barre de 10.',
+              style: Typo.legende.copyWith(
+                  fontSize: 11.5, height: 1.45, color: Couleurs.succes),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ Une UE
+
+  Widget _carteUnite(UniteReleve unite) {
+    final depliee = _depliees.contains(unite.id);
+    final moyenne = unite.moyenne;
     final teinte = moyenne == null ? Couleurs.encreDiscrete : teinteNote(moyenne);
     final fond = moyenne == null ? Couleurs.traitPale : fondNote(moyenne);
 
     return Carte(
       rayon: Rayons.tuile + 2,
       padding: EdgeInsets.zero,
-      surTap: matiere.notes.isEmpty
+      surTap: unite.ecues.isEmpty
           ? null
           : () => setState(() {
                 if (depliee) {
-                  _depliees.remove(matiere.matiereId);
+                  _depliees.remove(unite.id);
                 } else {
-                  _depliees.add(matiere.matiereId);
+                  _depliees.add(unite.id);
                 }
               }),
       enfant: Column(
@@ -304,7 +417,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     color: fond,
                     borderRadius: BorderRadius.circular(Rayons.md - 1),
                   ),
-                  child: Text(matiere.moyenneFormatee,
+                  child: Text(unite.moyenneFormatee,
                       style: Typo.mono(14, graisse: FontWeight.w700, couleur: teinte)),
                 ),
                 const SizedBox(width: Espaces.md),
@@ -312,22 +425,27 @@ class _NotesScreenState extends State<NotesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(matiere.libelle,
+                      Text(unite.libelle,
                           style: Typo.libelle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 3),
-                      Text(
-                        '${matiere.code} · coefficient ${matiere.coefficient} · '
-                        '${matiere.notes.length} note${matiere.notes.length > 1 ? 's' : ''}',
-                        style: Typo.legendePale,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(unite.code,
+                                style: Typo.legendePale,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                          const SizedBox(width: 6),
+                          _pastilleCredits(unite),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                if (matiere.notes.isNotEmpty)
+                if (unite.ecues.isNotEmpty)
                   AnimatedRotation(
                     turns: depliee ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
@@ -339,77 +457,130 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
           if (depliee) ...[
             const Divider(height: 1, indent: Espaces.md + 1, endIndent: Espaces.md + 1),
-            ...matiere.notes.map(_ligneNote),
-            const SizedBox(height: Espaces.sm),
+            _tableauEcues(unite),
           ],
         ],
       ),
     );
   }
 
-  Widget _ligneNote(Note note) {
+  Widget _pastilleCredits(UniteReleve unite) {
+    final acquise = unite.acquise;
+    return Pastille(
+      compact: true,
+      texte: '${unite.creditsFormates} cr.',
+      icone: acquise
+          ? (unite.acquiseParCompensation
+              ? Icons.compare_arrows_rounded
+              : Icons.check_circle_rounded)
+          : Icons.radio_button_unchecked_rounded,
+      teinte: acquise ? Couleurs.succes : Couleurs.encreDiscrete,
+      fond: acquise ? Couleurs.succesFond : Couleurs.traitPale,
+    );
+  }
+
+  // ------------------------------------------------- Le tableau des ECUE
+
+  /// Tableau des ECUE : devoir, examen, moyenne de l'ECUE et moyenne de l'UE.
+  ///
+  /// La moyenne de l'UE ne figure que sur la première ligne, comme une cellule
+  /// fusionnée sur un relevé imprimé : la répéter à chaque ligne laisserait croire
+  /// qu'elle change d'un ECUE à l'autre.
+  Widget _tableauEcues(UniteReleve unite) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          Espaces.md + 1, Espaces.md - 2, Espaces.md + 1, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+          Espaces.md + 1, Espaces.sm + 2, Espaces.md + 1, Espaces.md),
+      child: Column(
         children: [
-          Container(
-            width: 38,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: fondNote(note.valeur),
-              borderRadius: BorderRadius.circular(Rayons.sm),
-            ),
-            child: Text(note.valeurFormatee,
-                style: Typo.mono(12,
-                    graisse: FontWeight.w600, couleur: teinteNote(note.valeur))),
-          ),
-          const SizedBox(width: Espaces.md - 2),
+          _enteteTableau(),
+          const SizedBox(height: 2),
+          ...unite.ecues.asMap().entries.map(
+                (entree) => _ligneEcue(
+                  entree.value,
+                  moyenneUnite: entree.key == 0 ? unite.moyenneFormatee : null,
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _enteteTableau() {
+    TextStyle style() => Typo.legendePale.copyWith(
+        fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 0.3);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: Espaces.sm),
+      decoration: BoxDecoration(
+        color: Couleurs.traitPale,
+        borderRadius: BorderRadius.circular(Rayons.sm),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Text('ECUE', style: style())),
+          SizedBox(width: 36, child: Text('DEV', style: style(), textAlign: TextAlign.center)),
+          SizedBox(width: 36, child: Text('EXM', style: style(), textAlign: TextAlign.center)),
+          SizedBox(width: 42, child: Text('MOY', style: style(), textAlign: TextAlign.center)),
+          SizedBox(width: 44, child: Text('MOY UE', style: style(), textAlign: TextAlign.center)),
+        ],
+      ),
+    );
+  }
+
+  Widget _ligneEcue(EcueReleve ecue, {String? moyenneUnite}) {
+    final moyenne = ecue.moyenne;
+    final teinte = moyenne == null ? Couleurs.encreDiscrete : teinteNote(moyenne);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: Espaces.sm),
+      child: Row(
+        children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(note.type.icone, size: 13, color: Couleurs.encrePale),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(note.libelle,
-                          style: Typo.legende.copyWith(
-                              fontSize: 12, color: Couleurs.encreAttenuee),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${Dates.courte(note.dateEvaluation)} · coef. ${note.coefficient}'
-                  '${note.enseignantNom == null ? '' : ' · ${note.enseignantNom}'}',
-                  style: Typo.legendePale.copyWith(fontSize: 10.5),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (note.appreciation != null && note.appreciation!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: Espaces.sm + 1, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Couleurs.traitPale,
-                      borderRadius: BorderRadius.circular(Rayons.sm),
-                    ),
-                    child: Text(note.appreciation!,
-                        style: Typo.legende.copyWith(fontSize: 11, height: 1.4)),
-                  ),
-                ],
+                // Deux lignes plutôt qu'une : « Architecture des ord… » ne dit pas
+                // de quelle matière il s'agit, et la colonne ne peut pas s'élargir
+                // sans écraser les chiffres.
+                Text(ecue.libelle,
+                    style: Typo.legende.copyWith(
+                        fontSize: 12, height: 1.25, color: Couleurs.encreAttenuee),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 1),
+                Text('${ecue.code} · ${ecue.credits} cr.',
+                    style: Typo.legendePale.copyWith(fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
+          _cellule(ecue.devoirFormate, largeur: 36),
+          _cellule(ecue.examenFormate, largeur: 36),
+          _cellule(ecue.moyenneFormatee, largeur: 42, teinte: teinte, gras: true),
+          SizedBox(
+            width: 44,
+            child: moyenneUnite == null
+                ? const SizedBox.shrink()
+                : Text(moyenneUnite,
+                    textAlign: TextAlign.center,
+                    style: Typo.mono(12.5,
+                        graisse: FontWeight.w700, couleur: Couleurs.indigo700)),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _cellule(String valeur, {required double largeur, Color? teinte, bool gras = false}) {
+    return SizedBox(
+      width: largeur,
+      child: Text(
+        valeur,
+        textAlign: TextAlign.center,
+        style: Typo.mono(12,
+            graisse: gras ? FontWeight.w700 : FontWeight.w500,
+            couleur: teinte ?? Couleurs.encreAttenuee),
       ),
     );
   }
