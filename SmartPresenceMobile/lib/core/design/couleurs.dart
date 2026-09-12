@@ -1,71 +1,86 @@
 import 'package:flutter/material.dart';
 
-/// Palette SmartPresence — indigo profond.
+/// Palette SmartPresence — bleu royal, blanc, gris.
 ///
-/// Le document de mémoire §6 impose **bleu royal, blanc, gris**. L'indigo retenu ici
-/// reste dans cette famille : il en garde la teinte, mais gagne en saturation et en
-/// profondeur, ce que réclame une interface mobile où l'écran est petit et regardé de
-/// près. Un bleu trop pâle y paraît terne et administratif.
+/// Les trois couleurs du mémoire §6. Les valeurs sont **celles du web**, reprises
+/// jeton pour jeton depuis ses variables `--color-royal-*`, `--color-ink-*` et
+/// `--color-line-*` : deux clients de la même application ne peuvent pas afficher
+/// deux bleus différents, et un relecteur de mémoire regarde d'abord cette
+/// cohérence-là.
 ///
-/// Les dégradés ne sont pas décoratifs : ils créent la hiérarchie que la couleur plate
-/// ne donne pas — un en-tête qui s'enfonce, des cartes qui flottent au-dessus.
+/// Une version antérieure avait glissé vers l'indigo, au motif qu'un bleu franc
+/// paraît terne sur un petit écran. L'argument valait pour l'œil, pas pour le
+/// document : la charte n'est pas un choix esthétique révisable. Les dégradés et
+/// les ombres colorées rendent la profondeur recherchée sans quitter la famille.
+///
+/// Les trois teintes de statut — succès, alerte, danger — ne sont pas des couleurs
+/// de marque mais des signaux : une moyenne sous 10 doit se voir sans qu'on lise le
+/// chiffre. Elles restent volontairement sourdes, dans le registre d'un rapport
+/// imprimé, pour rester subordonnées au bleu.
 class Couleurs {
   Couleurs._();
 
-  // ---------------------------------------------------------------- Indigo
-  static const Color indigo50 = Color(0xFFEEF0FE);
-  static const Color indigo100 = Color(0xFFE0E4FC);
-  static const Color indigo200 = Color(0xFFC3CBF8);
-  static const Color indigo300 = Color(0xFF97A3F2);
-  static const Color indigo400 = Color(0xFF6C7BFF);
-  static const Color indigo500 = Color(0xFF5B6BFF);
-  static const Color indigo600 = Color(0xFF4356E8);
-  static const Color indigo700 = Color(0xFF2F3FB8);
-  static const Color indigo800 = Color(0xFF241C6B);
-  static const Color indigo900 = Color(0xFF171246);
+  // ------------------------------------------------------------ Bleu royal
+  //
+  // Reprise exacte des jetons `--color-royal-*` du frontend Angular.
+  static const Color royal50 = Color(0xFFEAF0FE);
+  static const Color royal100 = Color(0xFFE4ECFC);
+  static const Color royal200 = Color(0xFFC9D8F7);
+  static const Color royal300 = Color(0xFFA8C0F1);
+  static const Color royal400 = Color(0xFF5C81DD);
+  static const Color royal500 = Color(0xFF2E5BD8);
+  static const Color royal600 = Color(0xFF1B3FA0);
+  static const Color royal700 = Color(0xFF17357F);
+  static const Color royal800 = Color(0xFF132C73);
+  static const Color royal900 = Color(0xFF0E205A);
 
-  /// Alias conservés pour ne pas casser les écrans existants d'un seul coup.
-  static const Color royal50 = indigo50;
-  static const Color royal100 = indigo100;
-  static const Color royal200 = indigo200;
-  static const Color royal400 = indigo400;
-  static const Color royal500 = indigo500;
-  static const Color royal600 = indigo600;
-  static const Color royal700 = indigo700;
-  static const Color royal800 = indigo800;
-  static const Color royal900 = indigo900;
+  /// Anciens noms de l'épisode indigo, conservés le temps que les écrans migrent.
+  ///
+  /// Ils désignent désormais le bleu de la charte : un écran oublié revient donc
+  /// dans le rang de lui-même, au lieu de rester seul en indigo.
+  static const Color indigo50 = royal50;
+  static const Color indigo100 = royal100;
+  static const Color indigo200 = royal200;
+  static const Color indigo300 = royal300;
+  static const Color indigo400 = royal400;
+  static const Color indigo500 = royal500;
+  static const Color indigo600 = royal600;
+  static const Color indigo700 = royal700;
+  static const Color indigo800 = royal800;
+  static const Color indigo900 = royal900;
 
   // ------------------------------------------------------- Encre et gris
-  static const Color encre = Color(0xFF0D1030);
-  static const Color encreAttenuee = Color(0xFF4A5070);
-  static const Color encreDiscrete = Color(0xFF6B7192);
-  static const Color encrePale = Color(0xFF9AA0BD);
+  static const Color encre = Color(0xFF0F1729);
+  static const Color encreAttenuee = Color(0xFF5D667F);
+  static const Color encreDiscrete = Color(0xFF7A8399);
+  static const Color encrePale = Color(0xFF9AA2B5);
 
   // ---------------------------------------------------- Surfaces et traits
-  static const Color fond = Color(0xFFF4F5FC);
+  static const Color fond = Color(0xFFF4F6FB);
   static const Color carte = Color(0xFFFFFFFF);
-  static const Color trait = Color(0xFFE2E5F3);
-  static const Color traitLeger = Color(0xFFEDEFF8);
-  static const Color traitPale = Color(0xFFF2F3FB);
+  static const Color trait = Color(0xFFE2E7F0);
+  static const Color traitLeger = Color(0xFFEDF0F6);
+  static const Color traitPale = Color(0xFFF1F3F8);
 
   // ------------------------------------------------------------- Statuts
   //
-  // Plus vifs que des teintes de rapport imprimé : sur une pastille de 20 px, une
-  // couleur sourde devient illisible.
-  static const Color succes = Color(0xFF0E9B72);
-  static const Color succesVif = Color(0xFF12B886);
-  static const Color succesFond = Color(0xFFE4F8F1);
-  static const Color succesTrait = Color(0xFFBCE9D9);
+  // Teintes du web, plus une variante légèrement soutenue pour les pastilles et
+  // les anneaux : sur vingt pixels de large, la teinte de base manque de corps
+  // sans pour autant justifier le néon de la version précédente.
+  static const Color succes = Color(0xFF0F7355);
+  static const Color succesVif = Color(0xFF14926B);
+  static const Color succesFond = Color(0xFFE4F2EC);
+  static const Color succesTrait = Color(0xFFC9DCD4);
 
-  static const Color alerte = Color(0xFFB4780A);
-  static const Color alerteVif = Color(0xFFF59F0A);
-  static const Color alerteFond = Color(0xFFFEF3DC);
-  static const Color alerteTrait = Color(0xFFFBE3B8);
+  static const Color alerte = Color(0xFF96620A);
+  static const Color alerteVif = Color(0xFFC18310);
+  static const Color alerteFond = Color(0xFFFBF0DC);
+  static const Color alerteTrait = Color(0xFFEBD8AC);
 
-  static const Color danger = Color(0xFFD6304A);
-  static const Color dangerVif = Color(0xFFF2506A);
-  static const Color dangerFond = Color(0xFFFEE9ED);
-  static const Color dangerTrait = Color(0xFFF9C9D2);
+  static const Color danger = Color(0xFFA32B2B);
+  static const Color dangerVif = Color(0xFFC43A3A);
+  static const Color dangerFond = Color(0xFFF9EAEA);
+  static const Color dangerTrait = Color(0xFFEDCFCF);
 
   // ------------------------------------------------------------ Dégradés
 
@@ -73,7 +88,7 @@ class Couleurs {
   static const LinearGradient degradeEntete = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [indigo800, indigo700, indigo600],
+    colors: [royal900, royal800, royal600],
     stops: [0.0, 0.56, 1.0],
   );
 
@@ -81,37 +96,43 @@ class Couleurs {
   static const LinearGradient degradeNavigation = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [indigo800, Color(0xFF3A4AD4)],
+    colors: [royal900, royal700],
   );
 
-  /// Action de signalement : la seule teinte chaude de l'application, réservée au
-  /// geste qui interrompt le cours normal des choses.
+  /// Action de signalement : le geste qui interrompt le cours normal des choses.
+  ///
+  /// L'orange de la version précédente introduisait une quatrième couleur, lue
+  /// comme une seconde couleur de marque. Le rouge du jeton de danger suffit à
+  /// dire l'exception sans sortir de la charte.
   static const LinearGradient degradeSignalement = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [dangerVif, Color(0xFFFF7A5C)],
+    colors: [dangerVif, Color(0xFF8E2323)],
   );
 
   // ---------------------------------------------------------------- Ombres
 
   /// Ombre des cartes posées sur le fond.
   static List<BoxShadow> get ombreCarte => const [
-        BoxShadow(color: Color(0x0F141846), blurRadius: 12, offset: Offset(0, 3)),
+        BoxShadow(color: Color(0x0F0F1729), blurRadius: 12, offset: Offset(0, 3)),
       ];
 
   /// Ombre des éléments qui chevauchent l'en-tête, donc plus haut dans la pile.
   static List<BoxShadow> get ombreFlottante => const [
-        BoxShadow(color: Color(0x14141846), blurRadius: 20, offset: Offset(0, 6)),
+        BoxShadow(color: Color(0x140F1729), blurRadius: 20, offset: Offset(0, 6)),
       ];
 
-  /// Ombre colorée d'un élément indigo : une ombre grise sous un bloc coloré
-  /// paraît sale, alors qu'une ombre de la même teinte l'ancre.
-  static List<BoxShadow> get ombreIndigo => const [
-        BoxShadow(color: Color(0x522D3AB4), blurRadius: 20, offset: Offset(0, 8)),
+  /// Ombre colorée sous un bloc bleu : une ombre grise y paraît sale, alors
+  /// qu'une ombre de la même teinte l'ancre.
+  static List<BoxShadow> get ombreRoyal => const [
+        BoxShadow(color: Color(0x4D17357F), blurRadius: 20, offset: Offset(0, 8)),
       ];
+
+  /// Ancien nom, le temps que les écrans migrent.
+  static List<BoxShadow> get ombreIndigo => ombreRoyal;
 
   static List<BoxShadow> get ombreDanger => const [
-        BoxShadow(color: Color(0x66F2506A), blurRadius: 20, offset: Offset(0, 8)),
+        BoxShadow(color: Color(0x4DA32B2B), blurRadius: 20, offset: Offset(0, 8)),
       ];
 }
 

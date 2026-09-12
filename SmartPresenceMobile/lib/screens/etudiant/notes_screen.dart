@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/erreurs.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/design/animations.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
 import '../../models/note.dart';
@@ -47,6 +48,14 @@ class _NotesScreenState extends State<NotesScreen> {
     _charger();
   }
 
+  /// Vrai tant qu'aucun relévé n'a encore été obtenu.
+  ///
+  /// Distingué de [_chargement] à dessein : au premier affichage il n'y a
+  /// rien à montrer et l'indicateur de progression a sa place, alors qu'au
+  /// changement de semestre le contenu précédent reste à l'écran jusqu'à
+  /// l'arrivée du suivant. Vider puis remplir faisait perdre sa place au regard.
+  bool _vierge = true;
+
   Future<void> _charger() async {
     setState(() {
       _chargement = true;
@@ -61,6 +70,7 @@ class _NotesScreenState extends State<NotesScreen> {
         // sa réponse, sinon l'onglet actif ne correspondrait pas au contenu affiché.
         _semestre ??= releve.semestre;
         _chargement = false;
+        _vierge = false;
       });
     } on ErreurApi catch (e) {
       if (!mounted) return;
@@ -283,12 +293,21 @@ class _NotesScreenState extends State<NotesScreen> {
   // -------------------------------------------------------------------- Corps
 
   Widget _corps() {
-    if (_chargement) {
-      return const Center(child: CircularProgressIndicator(color: Couleurs.indigo600));
+    return TransitionContenu(enfant: _contenu());
+  }
+
+  Widget _contenu() {
+    // L'indicateur ne prend la place du contenu qu'au tout premier affichage.
+    if (_chargement && _vierge) {
+      return const Center(
+        key: ValueKey('chargement'),
+        child: CircularProgressIndicator(color: Couleurs.royal600),
+      );
     }
 
     if (_erreur != null) {
       return ListView(
+        key: const ValueKey('erreur'),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: Espaces.xxl),
@@ -306,6 +325,7 @@ class _NotesScreenState extends State<NotesScreen> {
 
     if (_releve.unites.isEmpty) {
       return ListView(
+        key: const ValueKey('maquette-absente'),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: Espaces.xxl),
@@ -321,6 +341,7 @@ class _NotesScreenState extends State<NotesScreen> {
 
     if (_releve.sansNote) {
       return ListView(
+        key: ValueKey('sans-note-${_releve.semestre.code}'),
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(
             Espaces.md + 2, Espaces.md, Espaces.md + 2, Espaces.xxxl * 3),
@@ -341,16 +362,19 @@ class _NotesScreenState extends State<NotesScreen> {
     }
 
     return ListView.separated(
+      // La clé porte le semestre : c'est elle qui fait rejouer la cascade à
+      // chaque bascule d'onglet, et qui déclenche le fondu entre les deux listes.
+      key: ValueKey('unites-${_releve.semestre.code}'),
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
           Espaces.md + 2, Espaces.md, Espaces.md + 2, Espaces.xxxl * 3),
       itemCount: _releve.unites.length + (_releve.compensationAppliquee ? 1 : 0),
       separatorBuilder: (_, index) => const SizedBox(height: Espaces.sm + 2),
       itemBuilder: (_, index) {
-        if (_releve.compensationAppliquee && index == _releve.unites.length) {
-          return _noteSurLaCompensation();
-        }
-        return _carteUnite(_releve.unites[index]);
+        final contenu = _releve.compensationAppliquee && index == _releve.unites.length
+            ? _noteSurLaCompensation()
+            : _carteUnite(_releve.unites[index]);
+        return ApparitionEnCascade(rang: index, enfant: contenu);
       },
     );
   }
@@ -448,17 +472,33 @@ class _NotesScreenState extends State<NotesScreen> {
                 if (unite.ecues.isNotEmpty)
                   AnimatedRotation(
                     turns: depliee ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
+                    duration: Durees.rapide,
+                    curve: Courbes.sortie,
                     child: const Icon(Icons.keyboard_arrow_down_rounded,
                         size: 22, color: Couleurs.encrePale),
                   ),
               ],
             ),
           ),
-          if (depliee) ...[
-            const Divider(height: 1, indent: Espaces.md + 1, endIndent: Espaces.md + 1),
-            _tableauEcues(unite),
-          ],
+          // Le tableau se déroule au lieu d'apparaître d'un bloc : la carte
+          // grandit sous le doigt, et l'œil suit le mouvement jusqu'aux chiffres.
+          AnimatedCrossFade(
+            duration: Durees.moyenne,
+            sizeCurve: Courbes.douce,
+            firstCurve: Courbes.entree,
+            secondCurve: Courbes.sortie,
+            crossFadeState:
+                depliee ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: const SizedBox(width: double.infinity, height: 0),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Divider(
+                    height: 1, indent: Espaces.md + 1, endIndent: Espaces.md + 1),
+                _tableauEcues(unite),
+              ],
+            ),
+          ),
         ],
       ),
     );

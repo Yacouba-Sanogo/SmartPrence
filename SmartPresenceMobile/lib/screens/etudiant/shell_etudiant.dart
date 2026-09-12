@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/design/animations.dart';
 import '../../core/design/couleurs.dart';
 import '../../widgets/navigation_flottante.dart';
 import '../profil_screen.dart';
@@ -49,16 +50,13 @@ class _ShellEtudiantState extends State<ShellEtudiant> {
       // extendBody laisse le contenu passer sous la barre flottante, qui devient
       // ainsi un élément posé sur la page plutôt qu'un bandeau qui la coupe.
       extendBody: true,
-      body: IndexedStack(
-        index: _onglet,
-        children: [
-          AccueilEtudiantScreen(auth: widget.auth, surNaviguer: _allerA),
-          EmploiDuTempsScreen(auth: widget.auth),
-          HistoriqueScreen(auth: widget.auth),
-          NotesScreen(auth: widget.auth),
-          ProfilScreen(auth: widget.auth),
-        ],
-      ),
+      body: _pile([
+        AccueilEtudiantScreen(auth: widget.auth, surNaviguer: _allerA),
+        EmploiDuTempsScreen(auth: widget.auth),
+        HistoriqueScreen(auth: widget.auth),
+        NotesScreen(auth: widget.auth),
+        ProfilScreen(auth: widget.auth),
+      ]),
       bottomNavigationBar: NavigationFlottante(
         indexActif: _onglet,
         surSelection: _allerA,
@@ -89,6 +87,42 @@ class _ShellEtudiantState extends State<ShellEtudiant> {
             libelle: 'Profil',
           ),
         ],
+      ),
+    );
+  }
+
+  /// Les cinq écrans empilés, celui de l'onglet actif seul visible.
+  ///
+  /// <p>Un `IndexedStack` conserve bien l'état de chaque écran — la position
+  /// de défilement, les données déjà chargées — mais bascule d'un coup sec. Un
+  /// `AnimatedSwitcher`, lui, fondrait joliment en reconstruisant tout, donc
+  /// en rechargeant à chaque aller-retour.</p>
+  ///
+  /// <p>Cette pile garde les deux : les écrans restent montés, et seule leur
+  /// opacité change. `IgnorePointer` empêche un écran devenu transparent de
+  /// capter les touchers, et `TickerMode` met en pause ses animations — sans
+  /// quoi cinq écrans animés tourneraient en permanence.</p>
+  Widget _pile(List<Widget> ecrans) {
+    return Stack(
+      children: [
+        for (var index = 0; index < ecrans.length; index++)
+          _calque(index: index, actif: index == _onglet, enfant: ecrans[index]),
+      ],
+    );
+  }
+
+  Widget _calque({required int index, required bool actif, required Widget enfant}) {
+    return IgnorePointer(
+      ignoring: !actif,
+      child: AnimatedOpacity(
+        opacity: actif ? 1 : 0,
+        duration: Durees.rapide,
+        curve: Courbes.douce,
+        // TickerMode à l'intérieur du fondu, et non autour : placé au-dessus, il
+        // coupait les tickers de l'écran sortant dès le début de sa disparition,
+        // donc le fondu lui-même — qui restait figé à pleine opacité. L'écran
+        // quitté demeurait alors visible par-dessus le nouveau.
+        child: TickerMode(enabled: actif, child: enfant),
       ),
     );
   }

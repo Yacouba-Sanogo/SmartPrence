@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/erreurs.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/dates.dart';
+import '../../core/design/animations.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
 import '../../models/seance.dart';
@@ -37,6 +38,12 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
   bool _chargement = true;
   String? _erreur;
 
+  /// Vrai tant qu'aucune semaine n'a été obtenue.
+  ///
+  /// En changeant de semaine, la précédente reste affichée jusqu'à l'arrivée de
+  /// la suivante : vider l'écran à chaque flèche le ferait clignoter.
+  bool _vierge = true;
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +68,7 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
       setState(() {
         _seances = seances;
         _chargement = false;
+        _vierge = false;
       });
     } on ErreurApi catch (e) {
       if (!mounted) return;
@@ -180,12 +188,20 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
   }
 
   Widget _corps() {
-    if (_chargement) {
-      return const Center(child: CircularProgressIndicator(color: Couleurs.indigo600));
+    return TransitionContenu(enfant: _contenu());
+  }
+
+  Widget _contenu() {
+    if (_chargement && _vierge) {
+      return const Center(
+        key: ValueKey('chargement'),
+        child: CircularProgressIndicator(color: Couleurs.royal600),
+      );
     }
 
     if (_erreur != null) {
       return ListView(
+        key: const ValueKey('erreur'),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: Espaces.xxl),
@@ -203,6 +219,7 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
 
     if (_seances.isEmpty) {
       return ListView(
+        key: ValueKey('vide-${_lundi.toIso8601String()}'),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: Espaces.xxl),
@@ -226,11 +243,16 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
     final cles = jours.keys.toList()..sort();
 
     return ListView.builder(
+      // La clé porte la semaine : le fondu et la cascade rejouent à chaque flèche.
+      key: ValueKey('semaine-${_lundi.toIso8601String()}'),
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(
           Espaces.md + 2, Espaces.md, Espaces.md + 2, Espaces.xxxl * 3),
       itemCount: cles.length,
-      itemBuilder: (_, index) => _journee(cles[index], jours[cles[index]]!),
+      itemBuilder: (_, index) => ApparitionEnCascade(
+        rang: index,
+        enfant: _journee(cles[index], jours[cles[index]]!),
+      ),
     );
   }
 
