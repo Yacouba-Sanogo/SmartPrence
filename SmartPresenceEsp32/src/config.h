@@ -19,8 +19,16 @@
 // Croisement obligatoire : la sortie du capteur entre dans l'ESP32.
 //   AS608 TX  ->  GPIO 16 (RX2 de l'ESP32)
 //   AS608 RX  <-  GPIO 17 (TX2 de l'ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+// ESP32-S3 N16R8 : GPIO 18 (RX) et 17 (TX), libres et sans fonction au démarrage.
+//   AS608 TX  ->  GPIO 18
+//   AS608 RX  <-  GPIO 17
+static constexpr int BROCHE_EMPREINTE_RX = 18;
+static constexpr int BROCHE_EMPREINTE_TX = 17;
+#else
 static constexpr int BROCHE_EMPREINTE_RX = 16;
 static constexpr int BROCHE_EMPREINTE_TX = 17;
+#endif
 
 /// Débit d'usine de l'AS608. Ne le changer que si le module a été reconfiguré.
 static constexpr uint32_t DEBIT_EMPREINTE = 57600;
@@ -35,7 +43,7 @@ static constexpr uint32_t DEBIT_EMPREINTE = 57600;
  * Les modules AS608 dépourvus de cette broche restent utilisables : voir
  * DETECTION_PAR_BROCHE ci-dessous.
  */
-static constexpr int BROCHE_EMPREINTE_TOUCHE = 4;
+static constexpr int BROCHE_EMPREINTE_TOUCHE = 4;  // identique sur ESP32 et ESP32-S3
 
 /// Mettre à false pour un module sans broche de détection : le capteur sera scruté.
 static constexpr bool DETECTION_PAR_BROCHE = true;
@@ -46,8 +54,14 @@ static constexpr bool DETECTION_PAR_BROCHE = true;
 //
 // Les deux composants partagent le même bus : ils ont des adresses distinctes
 // (0x68 pour le DS3231, 0x3C pour l'afficheur) et ne se gênent donc pas.
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+// Broches I2C par défaut de l'ESP32-S3.
+static constexpr int BROCHE_I2C_SDA = 8;
+static constexpr int BROCHE_I2C_SCL = 9;
+#else
 static constexpr int BROCHE_I2C_SDA = 21;
 static constexpr int BROCHE_I2C_SCL = 22;
+#endif
 
 static constexpr uint8_t ADRESSE_OLED = 0x3C;
 static constexpr int LARGEUR_OLED = 128;
@@ -61,15 +75,47 @@ static constexpr int HAUTEUR_OLED = 64;
 // Sont évitées : 0, 2, 12 et 15 (broches de configuration lues au boot, un niveau
 // imposé y empêche le démarrage), 6 à 11 (réservées à la flash) et 34 à 39
 // (entrées seules, sans étage de sortie).
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+// ESP32-S3 N16R8 : les GPIO 26 à 32 portent la flash et les GPIO 33 à 37 la PSRAM
+// octale — les utiliser fige la carte. Sont aussi évitées : 0, 3, 45 et 46 (broches
+// de configuration), 19 et 20 (USB natif), 43 et 44 (console série), 48 (diode RVB
+// de la carte).
+static constexpr int BROCHE_LED_VERTE = 5;
+static constexpr int BROCHE_LED_ROUGE = 6;
+static constexpr int BROCHE_BUZZER = 7;
+#else
 static constexpr int BROCHE_LED_VERTE = 25;
 static constexpr int BROCHE_LED_ROUGE = 26;
 static constexpr int BROCHE_BUZZER = 27;
+#endif
 
 /// Bouton d'enrôlement, câblé entre la broche et la masse (résistance interne activée).
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+static constexpr int BROCHE_BOUTON = 15;
+#else
 static constexpr int BROCHE_BOUTON = 32;
+#endif
 
 /// Appui long qui bascule en mode enrôlement.
 static constexpr uint32_t DUREE_APPUI_LONG_MS = 1500;
+
+// ---------------------------------------------------------------------------
+// Enrôlement en libre-service
+// ---------------------------------------------------------------------------
+//
+// L'étudiant ouvre une demande depuis l'application mobile et reçoit un code à six
+// chiffres. Le lecteur interroge le serveur pour savoir qui est attendu, affiche ce
+// même code et le nom, puis l'étudiant pose le doigt. Seule la référence logique de
+// l'emplacement est renvoyée, jamais un gabarit.
+
+/// Intervalle entre deux questions « qui est attendu ? », lecteur au repos.
+static constexpr uint32_t PERIODE_SONDAGE_ENROLEMENT_MS = 4000;
+
+/// Temps laissé à l'étudiant pour poser le doigt après l'affichage de son code.
+static constexpr uint32_t DELAI_DOIGT_ENROLEMENT_MS = 60000;
+
+/// Tentatives d'annonce de la référence au serveur avant de la faire recopier à la main.
+static constexpr int TENTATIVES_ANNONCE_ENROLEMENT = 4;
 
 // ---------------------------------------------------------------------------
 // Horaire

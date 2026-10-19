@@ -181,4 +181,44 @@ void referenceEnrolee(const String& reference) {
   diodes(false, false);
 }
 
+void demandeEnrolement(const String& code, const String& nom, uint32_t secondesRestantes) {
+  note(1500, 80);
+  note(1900, 80);
+  diodes(true, false);
+
+  if (ecranPresent) {
+    cadre(F("Enrolement"));
+    ecran.setTextSize(1);
+    ecran.setCursor(0, 14);
+    ecran.println(nom.substring(0, 21));
+    ecran.setTextSize(2);
+    ecran.setCursor(14, 28);
+    ecran.print(code);
+    ecran.setTextSize(1);
+    ecran.setCursor(0, 50);
+    ecran.print(F("Meme code ? Posez le doigt"));
+    ecran.display();
+  }
+  (void)secondesRestantes;
+}
+
+void enrolementLie(const String& nom) {
+  diodes(true, false);
+  note(1400, 90);
+  note(1900, 90);
+  note(2300, 140);
+
+  if (ecranPresent) {
+    cadre(F("Empreinte enregistree"));
+    ecran.setTextSize(1);
+    ecran.setCursor(0, 24);
+    ecran.println(nom.substring(0, 21));
+    ecran.println(F("Merci, c'est fait."));
+    ecran.display();
+  }
+
+  delay(3000);
+  diodes(false, false);
+}
+
 }  // namespace ihm

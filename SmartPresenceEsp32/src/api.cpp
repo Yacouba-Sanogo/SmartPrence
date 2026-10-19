@@ -124,4 +124,57 @@ Resultat envoyer(const file_attente::Evenement* evenements, size_t nombre,
   return issue;
 }
 
+IssueDemande prochainEnrolement(DemandeEnrolement& demande) {
+  if (!wifiConnecte()) return IssueDemande::Erreur;
+
+  HTTPClient http;
+  http.setTimeout(DELAI_REQUETE_HTTP_MS);
+  http.begin(String(URL_SERVEUR) + "/api/esp32/enrolements/prochain");
+  http.addHeader("X-API-KEY", CLE_API);
+
+  const int code = http.GET();
+  IssueDemande issue = IssueDemande::Erreur;
+
+  if (code == 204) {
+    issue = IssueDemande::Aucune;
+  } else if (code == 200) {
+    JsonDocument reponse;
+    if (deserializeJson(reponse, http.getString()) == DeserializationError::Ok) {
+      JsonObject donnees = reponse["data"];
+      demande.code = donnees["code"].as<String>();
+      demande.nom = donnees["nomAffiche"].as<String>();
+      demande.matricule = donnees["matricule"].as<String>();
+      demande.secondesRestantes = donnees["secondesRestantes"] | 0;
+      if (demande.code.length() > 0) issue = IssueDemande::Demande;
+    }
+  } else if (code == 401 || code == 403) {
+    Serial.println(F("[api] enrolement : cle refusee ou lecteur non habilite"));
+  }
+
+  http.end();
+  return issue;
+}
+
+bool annoncerEnrolement(const String& code, const String& reference) {
+  if (!wifiConnecte()) return false;
+
+  JsonDocument corps;
+  corps["code"] = code;
+  corps["reference"] = reference;
+  String charge;
+  serializeJson(corps, charge);
+
+  HTTPClient http;
+  http.setTimeout(DELAI_REQUETE_HTTP_MS);
+  http.begin(String(URL_SERVEUR) + "/api/esp32/enrolements");
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-API-KEY", CLE_API);
+
+  const int issue = http.POST(charge);
+  http.end();
+
+  Serial.printf("[api] annonce d'enrolement : HTTP %d\n", issue);
+  return issue == 200;
+}
+
 }  // namespace api

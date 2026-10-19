@@ -32,4 +32,10 @@ void etapeEnrolement(const String& etape, uint16_t slot);
 /// Reference produite a l'issue d'un enrolement, a recopier dans l'administration.
 void referenceEnrolee(const String& reference);
 
+/// Demande d'enrolement a servir : le code et le nom a comparer a ceux du telephone.
+void demandeEnrolement(const String& code, const String& nom, uint32_t secondesRestantes);
+
+/// Enrolement lie au dossier : confirmation pour l'etudiant.
+void enrolementLie(const String& nom);
+
 }  // namespace ihm

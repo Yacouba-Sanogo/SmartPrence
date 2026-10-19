@@ -7,6 +7,10 @@ transmet au serveur SmartPresence.
 **Le guide de branchement est dans [`docs/Guide-branchement-lecteur-ESP32.pdf`](docs/Guide-branchement-lecteur-ESP32.pdf).**
 Il décrit le câblage attendu par ce code, broche par broche.
 
+**Carte ESP32-S3 N16R8 :** le brochage diffère (les GPIO 26 à 37 y sont réservés à la flash et à la
+PSRAM). Guide, schéma et plan de test dans [`Branchement-ESP32-S3/`](Branchement-ESP32-S3/README.md) ;
+compilation avec `pio run -e esp32s3`.
+
 ## Démarrage
 
 ```bash
