@@ -40,7 +40,7 @@ class ConfigApi {
   ///
   /// À rabaisser avant de distribuer l'APK : installée chez un étudiant,
   /// l'application chercherait le serveur sur son propre téléphone.
-  static const bool _viserPosteLocal = true;
+  static const bool _viserPosteLocal = false;
 
   static String get baseUrl {
     if (_surcharge.isNotEmpty) return _surcharge;
