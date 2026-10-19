@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { messageErreur } from '../../core/api';
-import { Classe, ClasseRequest, Promotion } from '../../core/models/classe.model';
+import { Classe, ClasseRequest, Filiere, Promotion } from '../../core/models/classe.model';
 import { Personnel, nomComplet } from '../../core/models/personnel.model';
 import { ClasseService } from '../../core/services/classe.service';
 import { IconeComponent } from '../../shared/ui/icone.component';
@@ -108,6 +108,71 @@ import { ModaleComponent } from '../../shared/ui/modale.component';
             }
           </label>
 
+          @if (filieres().length > 0) {
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="flex flex-col gap-1.5">
+                <span class="text-[11.5px] font-semibold tracking-wide text-ink-muted">Filière</span>
+                <span class="champ !h-11">
+                  <select
+                    name="filiere"
+                    class="saisie bg-transparent"
+                    [ngModel]="filiereId()"
+                    (ngModelChange)="changerFiliere($event)"
+                  >
+                    <option [ngValue]="null">Aucune</option>
+                    @for (filiere of filieres(); track filiere.id) {
+                      <option [ngValue]="filiere.id">{{ filiere.libelle }}</option>
+                    }
+                  </select>
+                </span>
+              </label>
+
+              <label class="flex flex-col gap-1.5">
+                <span class="text-[11.5px] font-semibold tracking-wide text-ink-muted">
+                  Option (3<sup>e</sup> année et plus)
+                </span>
+                <span class="champ !h-11">
+                  <select
+                    name="option"
+                    class="saisie bg-transparent"
+                    [disabled]="optionsDeLaFiliere().length === 0"
+                    [ngModel]="optionId()"
+                    (ngModelChange)="optionId.set($event)"
+                  >
+                    <option [ngValue]="null">Aucune</option>
+                    @for (option of optionsDeLaFiliere(); track option.id) {
+                      <option [ngValue]="option.id">{{ option.libelle }}</option>
+                    }
+                  </select>
+                </span>
+              </label>
+            </div>
+          }
+
+          <label class="flex flex-col gap-1.5">
+            <span class="text-[11.5px] font-semibold tracking-wide text-ink-muted">
+              Classe précédente
+            </span>
+            <span class="champ !h-11">
+              <select
+                name="classePrecedente"
+                class="saisie bg-transparent"
+                [ngModel]="classePrecedenteId()"
+                (ngModelChange)="classePrecedenteId.set($event)"
+              >
+                <option [ngValue]="null">Aucune (première année)</option>
+                @for (autre of classesPossibles(); track autre.id) {
+                  <option [ngValue]="autre.id">{{ autre.code }} — {{ autre.libelle }}</option>
+                }
+              </select>
+            </span>
+            <span class="text-[11px] text-ink-faint">
+              Les étudiants admis de cette classe passent automatiquement dans celle-ci. Quand
+              plusieurs classes partagent la même classe précédente (une par option), chacun
+              rejoint celle de l'option qu'il a choisie.
+            </span>
+          </label>
+
           <div class="flex flex-col gap-2">
             <div class="flex items-baseline justify-between gap-3">
               <span class="text-[11.5px] font-semibold tracking-wide text-ink-muted">
@@ -201,6 +266,9 @@ export class ClasseDialogComponent implements OnInit {
   readonly classe = input<Classe | null>(null);
   readonly promotions = input.required<Promotion[]>();
   readonly enseignants = input.required<Personnel[]>();
+  readonly filieres = input<Filiere[]>([]);
+  /** Toutes les classes, pour choisir la classe précédente. */
+  readonly classes = input<Classe[]>([]);
 
   /** Rattachements actuels, chargés par la liste avant l'ouverture. */
   readonly enseignantsActuels = input<string[]>([]);
@@ -212,6 +280,18 @@ export class ClasseDialogComponent implements OnInit {
   readonly libelle = signal('');
   readonly promotionId = signal<number | null>(null);
   readonly enseignantIds = signal<string[]>([]);
+  readonly filiereId = signal<number | null>(null);
+  readonly optionId = signal<number | null>(null);
+  readonly classePrecedenteId = signal<number | null>(null);
+
+  readonly optionsDeLaFiliere = computed(
+    () => this.filieres().find((f) => f.id === this.filiereId())?.options ?? [],
+  );
+
+  /** Toute classe sauf elle-même : le serveur refuse en plus les boucles. */
+  readonly classesPossibles = computed(() =>
+    this.classes().filter((autre) => autre.id !== this.classe()?.id),
+  );
   readonly recherche = signal('');
   readonly envoi = signal(false);
   readonly erreur = signal('');
@@ -241,7 +321,16 @@ export class ClasseDialogComponent implements OnInit {
       this.libelle.set(classe.libelle);
       this.promotionId.set(classe.promotion?.id ?? null);
       this.enseignantIds.set([...this.enseignantsActuels()]);
+      this.filiereId.set(classe.filiereId ?? null);
+      this.optionId.set(classe.optionId ?? null);
+      this.classePrecedenteId.set(classe.classePrecedenteId ?? null);
     }
+  }
+
+  /** Changer de filière efface l'option : elle n'appartiendrait plus à la filière. */
+  changerFiliere(id: number | null): void {
+    this.filiereId.set(id);
+    this.optionId.set(null);
   }
 
   nomAffiche(agent: Personnel): string {
@@ -270,6 +359,9 @@ export class ClasseDialogComponent implements OnInit {
       libelle: this.libelle().trim(),
       promotionId: this.promotionId() as number,
       enseignantIds: this.enseignantIds(),
+      filiereId: this.filiereId(),
+      optionId: this.optionId(),
+      classePrecedenteId: this.classePrecedenteId(),
     };
 
     const classe = this.classe();

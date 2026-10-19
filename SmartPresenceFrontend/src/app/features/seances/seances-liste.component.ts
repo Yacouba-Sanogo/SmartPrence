@@ -50,7 +50,7 @@ const MOIS = [
   template: `
     <div class="flex flex-col gap-[18px]">
       <div class="flex flex-wrap items-end gap-5">
-        <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div class="flex min-w-[min(100%,280px)] flex-1 flex-col gap-1.5">
           <h1 class="m-0 text-[25px] font-semibold tracking-tight text-ink">Emploi du temps</h1>
           <p class="m-0 text-[13px] leading-relaxed text-ink-muted">
             Séances planifiées. Chaque relevé de présence étudiant se rattache à l'une d'elles.
@@ -134,13 +134,23 @@ const MOIS = [
         </label>
 
         <div class="flex items-center gap-1.5 pb-px">
-          <button type="button" class="btn btn-secondaire !h-9 !px-3" (click)="decalerSemaine(-1)">
+          <button
+            type="button"
+            class="btn btn-secondaire !h-9 !px-3"
+            aria-label="Semaine précédente"
+            (click)="decalerSemaine(-1)"
+          >
             <sp-icone nom="chevron-gauche" [taille]="14" [epaisseur]="2" />
           </button>
           <button type="button" class="btn btn-secondaire !h-9 !px-3" (click)="semaineCourante()">
             Cette semaine
           </button>
-          <button type="button" class="btn btn-secondaire !h-9 !px-3" (click)="decalerSemaine(1)">
+          <button
+            type="button"
+            class="btn btn-secondaire !h-9 !px-3"
+            aria-label="Semaine suivante"
+            (click)="decalerSemaine(1)"
+          >
             <sp-icone nom="chevron-droit" [taille]="14" [epaisseur]="2" />
           </button>
         </div>

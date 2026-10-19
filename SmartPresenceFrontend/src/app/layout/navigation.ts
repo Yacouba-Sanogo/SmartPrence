@@ -76,11 +76,35 @@ export const NAVIGATION: readonly GroupeNavigation[] = [
         roles: ['ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR'],
       },
       {
+        chemin: '/passage',
+        libelle: 'Passage de classe',
+        icone: 'classes',
+        roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+      },
+      {
         chemin: '/justificatifs',
         libelle: 'Justificatifs',
         icone: 'info',
         roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
         compteur: 'justificatifs',
+      },
+      {
+        chemin: '/annonces',
+        libelle: 'Annonces',
+        icone: 'diffusion',
+        roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+      },
+      {
+        chemin: '/conges',
+        libelle: 'Demandes de congé',
+        icone: 'calendrier',
+        roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+      },
+      {
+        chemin: '/notes-a-valider',
+        libelle: 'Validation des notes',
+        icone: 'coche-cercle',
+        roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
       },
       {
         chemin: '/signalements',

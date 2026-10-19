@@ -3,7 +3,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API, extraireDonnees } from '../api';
 import { ApiResponse } from '../models/api.model';
-import { Classe, ClasseDetail, ClasseRequest, Promotion } from '../models/classe.model';
+import {
+  Classe,
+  ClasseDetail,
+  ClasseRequest,
+  Filiere,
+  Passage,
+  Promotion,
+} from '../models/classe.model';
 
 /**
  * Référentiel des classes et de leur équipe pédagogique.
@@ -38,6 +45,23 @@ export class ClasseService {
 
   supprimer(id: number): Observable<void> {
     return extraireDonnees(this.http.delete<ApiResponse<void>>(`${this.base}/${id}`));
+  }
+
+  /** Filières de l'ENETP avec leur DER et leurs options (lecture publique). */
+  listerFilieres(): Observable<Filiere[]> {
+    return extraireDonnees(this.http.get<ApiResponse<Filiere[]>>(`${API}/referentiel/filieres`));
+  }
+
+  /**
+   * Passage en année supérieure.
+   *
+   * Sans `appliquer`, le serveur ne fait que simuler : rien n'est déplacé.
+   */
+  passage(classeId: number | null, appliquer: boolean): Observable<Passage> {
+    const chemin =
+      classeId === null ? `${this.base}/passage` : `${this.base}/${classeId}/passage`;
+    const params = new HttpParams().set('appliquer', String(appliquer));
+    return extraireDonnees(this.http.post<ApiResponse<Passage>>(chemin, null, { params }));
   }
 
   /** Promotions disponibles pour le rattachement d'une classe. */
