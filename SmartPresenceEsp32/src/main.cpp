@@ -38,6 +38,7 @@ namespace {
 
 uint32_t prochainEnvoi = 0;
 uint32_t prochainRafraichissement = 0;
+uint32_t prochainSondage = 0;
 uint32_t derniereReconnexion = 0;
 int tentatives = 0;
 
@@ -125,6 +126,72 @@ void enroler() {
   ihm::referenceEnrolee(empreinte::referenceDe(slot));
 }
 
+/**
+ * Enrôlement en libre-service : sert l'étudiant que le serveur désigne.
+ *
+ * <p>Le code et le nom sont affichés ; l'étudiant les compare à ceux de son téléphone
+ * avant de poser le doigt. C'est cette vérification, et non le hasard de la file, qui
+ * garantit que l'empreinte est rattachée au bon dossier.</p>
+ *
+ * <p>Si le serveur ne répond pas après la capture, l'empreinte est déjà dans le capteur :
+ * la référence est alors affichée pour être saisie à la main dans l'administration, comme
+ * pour l'enrôlement par bouton.</p>
+ */
+void servirEnrolement(const api::DemandeEnrolement& demande) {
+  ihm::demandeEnrolement(demande.code, demande.nom, demande.secondesRestantes);
+
+  // Attente du doigt, bornée par la durée de la demande ; un appui sur le bouton
+  // l'abandonne sans rien enregistrer.
+  const uint32_t delai = demande.secondesRestantes * 1000UL < DELAI_DOIGT_ENROLEMENT_MS
+                             ? demande.secondesRestantes * 1000UL
+                             : DELAI_DOIGT_ENROLEMENT_MS;
+  const uint32_t limite = millis() + delai;
+  while (!empreinte::doigtPose()) {
+    if (millis() >= limite || digitalRead(BROCHE_BOUTON) == LOW) {
+      ihm::message(F("Enrolement annule"), F("Redemandez un code."), false);
+      return;
+    }
+    delay(80);
+  }
+
+  const uint16_t slot = empreinte::premierSlotLibre();
+  if (slot == 0) {
+    ihm::message(F("Memoire pleine"), F("Capteur sature."), true);
+    return;
+  }
+
+  const bool reussi = empreinte::enroler(slot, [](const String& etape) {
+    ihm::etapeEnrolement(etape, empreinte::premierSlotLibre());
+  });
+  if (!reussi) {
+    ihm::message(F("Enrolement echoue"), F("Redemandez un code."), true);
+    return;
+  }
+
+  const String reference = empreinte::referenceDe(slot);
+  for (int essai = 1; essai <= TENTATIVES_ANNONCE_ENROLEMENT; essai++) {
+    if (api::annoncerEnrolement(demande.code, reference)) {
+      ihm::enrolementLie(demande.nom);
+      return;
+    }
+    delay(1500);
+  }
+
+  // Dernier recours : l'empreinte existe sans être rattachée.
+  ihm::referenceEnrolee(reference);
+}
+
+/// Interroge le serveur, lecteur au repos, pour savoir si un étudiant est attendu.
+void sonderEnrolement() {
+  if (USAGE != UsageLecteur::Etudiants || !api::wifiConnecte()) return;
+
+  api::DemandeEnrolement demande;
+  if (api::prochainEnrolement(demande) == api::IssueDemande::Demande) {
+    servirEnrolement(demande);
+    afficherVeille();
+  }
+}
+
 /// Détecte un appui long sur le bouton d'enrôlement.
 bool appuiLong() {
   if (digitalRead(BROCHE_BOUTON) == HIGH) return false;
@@ -204,6 +271,13 @@ void loop() {
         break;
     }
     afficherVeille();
+  }
+
+  // Seulement quand personne n'a le doigt sur le capteur : servir un enrôlement
+  // prend plusieurs dizaines de secondes, pendant lesquelles les pointages attendent.
+  if (maintenant >= prochainSondage && !empreinte::doigtPose()) {
+    sonderEnrolement();
+    prochainSondage = millis() + PERIODE_SONDAGE_ENROLEMENT_MS;
   }
 
   if (maintenant >= prochainEnvoi) {

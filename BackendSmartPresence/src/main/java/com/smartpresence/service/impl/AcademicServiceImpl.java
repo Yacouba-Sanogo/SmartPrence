@@ -1,6 +1,7 @@
 package com.smartpresence.service.impl;
 
 import com.smartpresence.constants.StatutSeance;
+import com.smartpresence.constants.TypeNotification;
 import com.smartpresence.constants.TypePersonnel;
 import com.smartpresence.dto.request.MatiereRequest;
 import com.smartpresence.dto.request.SeanceRequest;
@@ -51,6 +52,7 @@ public class AcademicServiceImpl implements AcademicService {
     private final ClasseRepository classeRepository;
     private final SalleRepository salleRepository;
     private final PresenceRepository presenceRepository;
+    private final com.smartpresence.service.NotificationService notificationService;
 
     // ------------------------------------------------------------------
     // Matières
@@ -135,6 +137,8 @@ public class AcademicServiceImpl implements AcademicService {
         Seance seance = new Seance();
         appliquer(seance, request, null);
         Seance enregistree = seanceRepository.save(seance);
+        notificationService.notifierEnseignant(enregistree.getEnseignant(), TypeNotification.SEANCE,
+                "Nouvelle séance planifiée", descriptionSeance(enregistree));
         log.info("Séance planifiée — classe={}, matière={}, début={}",
                 enregistree.getClasse().getCode(), enregistree.getMatiere().getCode(),
                 enregistree.getDebut());
@@ -157,8 +161,67 @@ public class AcademicServiceImpl implements AcademicService {
                     HttpStatus.CONFLICT);
         }
 
+        Personnel ancienEnseignant = seance.getEnseignant();
+        Instant ancienDebut = seance.getDebut();
+        Instant ancienneFin = seance.getFin();
+        Long ancienneSalle = seance.getSalle() == null ? null : seance.getSalle().getId();
+
         appliquer(seance, request, id);
-        return versReponse(seanceRepository.save(seance));
+        Seance enregistree = seanceRepository.save(seance);
+        notifierChangement(enregistree, ancienEnseignant, ancienDebut, ancienneFin, ancienneSalle);
+        return versReponse(enregistree);
+    }
+
+    /**
+     * Prévient l'enseignant quand sa séance bouge : c'est le moment où l'information a le
+     * plus de valeur, et celui où l'administration pense le moins à la transmettre.
+     * Si la séance change de main, l'ancien titulaire est averti qu'il n'a plus à venir.
+     */
+    private void notifierChangement(Seance s, Personnel ancienEnseignant, Instant ancienDebut,
+                                    Instant ancienneFin, Long ancienneSalle) {
+        if (!ancienEnseignant.getId().equals(s.getEnseignant().getId())) {
+            notificationService.notifierEnseignant(ancienEnseignant, TypeNotification.CHANGEMENT,
+                    "Séance retirée de votre emploi du temps",
+                    "La séance « " + s.getMatiere().getLibelle() + " » du "
+                            + FORMAT_JOUR.format(ancienDebut) + " ne vous est plus attribuée.");
+            notificationService.notifierEnseignant(s.getEnseignant(), TypeNotification.SEANCE,
+                    "Nouvelle séance planifiée", descriptionSeance(s));
+            return;
+        }
+        List<String> changements = new java.util.ArrayList<>();
+        // Comparés à la milliseconde : la base ne garde pas les nanosecondes, et un écart
+        // invisible déclencherait une alerte pour une séance qui n'a pas bougé.
+        if (!memeInstant(ancienDebut, s.getDebut()) || !memeInstant(ancienneFin, s.getFin())) {
+            changements.add("Horaire : " + FORMAT_JOUR.format(s.getDebut()) + " – "
+                    + FORMAT_HEURE.format(s.getFin()));
+        }
+        Long nouvelleSalle = s.getSalle() == null ? null : s.getSalle().getId();
+        if (!java.util.Objects.equals(ancienneSalle, nouvelleSalle)) {
+            changements.add("Salle : " + (s.getSalle() == null ? "à définir" : s.getSalle().getLibelle()));
+        }
+        if (!changements.isEmpty()) {
+            notificationService.notifierEnseignant(s.getEnseignant(), TypeNotification.CHANGEMENT,
+                    "Séance modifiée — " + s.getMatiere().getLibelle(),
+                    s.getClasse().getCode() + " · " + String.join(" · ", changements));
+        }
+    }
+
+    private static boolean memeInstant(Instant a, Instant b) {
+        return a.truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
+                .equals(b.truncatedTo(java.time.temporal.ChronoUnit.MILLIS));
+    }
+
+    private static final java.time.format.DateTimeFormatter FORMAT_JOUR =
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM 'à' HH:mm", java.util.Locale.FRANCE)
+                    .withZone(java.time.ZoneId.systemDefault());
+    private static final java.time.format.DateTimeFormatter FORMAT_HEURE =
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.FRANCE)
+                    .withZone(java.time.ZoneId.systemDefault());
+
+    private String descriptionSeance(Seance s) {
+        return s.getMatiere().getLibelle() + " · " + s.getClasse().getCode() + " · "
+                + FORMAT_JOUR.format(s.getDebut()) + " – " + FORMAT_HEURE.format(s.getFin())
+                + (s.getSalle() == null ? "" : " · " + s.getSalle().getLibelle());
     }
 
     @Override
@@ -180,14 +243,21 @@ public class AcademicServiceImpl implements AcademicService {
     @Override
     @Transactional
     public void changeStatutSeance(UUID id, String statut) {
-        Seance seance = seanceRepository.findById(id)
+        Seance seance = seanceRepository.findAvecContexte(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance", "id", id));
+        StatutSeance ancien = seance.getStatut();
         try {
             seance.setStatut(StatutSeance.valueOf(statut));
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Statut de séance invalide : " + statut);
         }
         seanceRepository.save(seance);
+        if (seance.getStatut() == StatutSeance.ANNULEE && ancien != StatutSeance.ANNULEE) {
+            notificationService.notifierEnseignant(seance.getEnseignant(), TypeNotification.CHANGEMENT,
+                    "Séance annulée — " + seance.getMatiere().getLibelle(),
+                    seance.getClasse().getCode() + " · " + FORMAT_JOUR.format(seance.getDebut())
+                            + " : cette séance n'aura pas lieu.");
+        }
     }
 
     // ------------------------------------------------------------------
@@ -327,6 +397,7 @@ public class AcademicServiceImpl implements AcademicService {
                 .fin(s.getFin())
                 .statut(s.getStatut())
                 .note(s.getNote())
+                .declareeLe(s.getDeclareeLe())
                 .build();
     }
 }

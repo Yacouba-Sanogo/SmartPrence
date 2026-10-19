@@ -5,6 +5,8 @@ import '../core/auth/auth_service.dart';
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
 import '../widgets/communs.dart';
+import 'concours_screen.dart';
+import 'inscription_screen.dart';
 
 /// Écran de connexion — seule porte d'entrée de l'application.
 class ConnexionScreen extends StatefulWidget {
@@ -191,7 +193,28 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: Espaces.xl),
+                  const SizedBox(height: Espaces.md),
+                  TextButton(
+                    onPressed: enCours
+                        ? null
+                        : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                            builder: (_) => InscriptionScreen(auth: widget.auth))),
+                    style: TextButton.styleFrom(foregroundColor: Colors.white),
+                    child: const Text('Pas de compte ? Créer mon compte'),
+                  ),
+                  TextButton.icon(
+                    onPressed: enCours
+                        ? null
+                        : () => Navigator.of(context).push(MaterialPageRoute<void>(
+                            builder: (_) =>
+                                ConcoursScreen(client: widget.auth.client))),
+                    style: TextButton.styleFrom(
+                        foregroundColor: Colors.white.withValues(alpha: 0.85)),
+                    icon: const Icon(Icons.school_outlined, size: 18),
+                    label: const Text("Concours d'entrée à l'ENETP"),
+                  ),
+
+                  const SizedBox(height: Espaces.md),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

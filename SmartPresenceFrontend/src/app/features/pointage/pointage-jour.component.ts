@@ -46,7 +46,7 @@ type FiltreStatut = StatutPresence | 'TOUS' | 'SUR_SITE';
     <div class="flex flex-col gap-[18px]">
       <!-- Titre et actions -->
       <div class="flex flex-wrap items-end gap-5">
-        <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div class="flex min-w-[min(100%,280px)] flex-1 flex-col gap-1.5">
           <h1 class="m-0 text-[25px] font-semibold tracking-tight text-ink">Pointage du jour</h1>
           @if (parametres(); as p) {
             <p class="m-0 text-[13px] leading-relaxed text-ink-muted">

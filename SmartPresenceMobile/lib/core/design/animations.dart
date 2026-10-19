@@ -132,3 +132,172 @@ class TransitionContenu extends StatelessWidget {
     );
   }
 }
+
+/// Nombre qui monte jusqu'à sa valeur à l'arrivée des données.
+///
+/// <p>Un compteur qui s'affiche d'un bloc se lit comme un texte ; celui qui s'égrène
+/// se lit comme une mesure. Sur un bilan, c'est ce qui donne le sentiment que les
+/// chiffres viennent d'être calculés plutôt que d'avoir été recopiés.</p>
+class CompteurAnime extends StatelessWidget {
+  const CompteurAnime({
+    super.key,
+    required this.valeur,
+    required this.style,
+    this.suffixe = '',
+  });
+
+  final int valeur;
+  final TextStyle style;
+  final String suffixe;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: valeur.toDouble()),
+      duration: Durees.ample,
+      curve: Courbes.sortie,
+      builder: (_, v, __) => Text('${v.round()}$suffixe', style: style),
+    );
+  }
+}
+
+/// Barre de progression qui se remplit, et se réajuste en douceur quand la valeur change.
+class BarreAnimee extends StatelessWidget {
+  const BarreAnimee({
+    super.key,
+    required this.valeur,
+    required this.couleur,
+    this.fond,
+    this.hauteur = 6,
+  });
+
+  /// De 0 à 1.
+  final double valeur;
+  final Color couleur;
+  final Color? fond;
+  final double hauteur;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: valeur.clamp(0, 1)),
+        duration: Durees.ample,
+        curve: Courbes.sortie,
+        builder: (_, v, __) => LinearProgressIndicator(
+          value: v,
+          minHeight: hauteur,
+          backgroundColor: fond ?? const Color(0xFFF1F3F8),
+          color: couleur,
+        ),
+      ),
+    );
+  }
+}
+
+/// Enfonce légèrement son contenu sous le doigt.
+///
+/// <p>Le ressort au relâchement est ce qui distingue un bouton qui a « pris » d'une zone
+/// qui n'a rien senti. Sans effet visible, l'utilisateur retouche, et ouvre deux fois.</p>
+class PressionDouce extends StatefulWidget {
+  const PressionDouce({super.key, required this.enfant, this.actif = true});
+
+  final Widget enfant;
+  final bool actif;
+
+  @override
+  State<PressionDouce> createState() => _PressionDouceState();
+}
+
+class _PressionDouceState extends State<PressionDouce> {
+  bool _enfonce = false;
+
+  void _regler(bool v) {
+    if (widget.actif && _enfonce != v) setState(() => _enfonce = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _regler(true),
+      onPointerUp: (_) => _regler(false),
+      onPointerCancel: (_) => _regler(false),
+      child: AnimatedScale(
+        scale: _enfonce ? 0.975 : 1,
+        duration: Durees.rapide,
+        curve: _enfonce ? Courbes.sortie : Curves.easeOutBack,
+        child: widget.enfant,
+      ),
+    );
+  }
+}
+
+/// Point qui bat doucement : « en direct », « sur site ».
+class PointVivant extends StatefulWidget {
+  const PointVivant({super.key, required this.couleur, this.taille = 9});
+
+  final Color couleur;
+  final double taille;
+
+  @override
+  State<PointVivant> createState() => _PointVivantState();
+}
+
+class _PointVivantState extends State<PointVivant> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, __) => Container(
+        width: widget.taille,
+        height: widget.taille,
+        decoration: BoxDecoration(
+          color: widget.couleur,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: widget.couleur.withValues(alpha: 0.45 * (1 - _c.value)),
+              blurRadius: 2 + 8 * _c.value,
+              spreadRadius: 4 * _c.value,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Transition entre écrans : fondu et glissement léger vers le haut.
+///
+/// <p>Le changement de page par défaut est une translation latérale pleine largeur,
+/// pensée pour la profondeur d'une pile. Pour descendre d'une liste à son détail, un
+/// glissement court garde le repère et coûte moins à l'œil.</p>
+Route<T> routeDouce<T>(WidgetBuilder construire) {
+  return PageRouteBuilder<T>(
+    transitionDuration: Durees.moyenne,
+    reverseTransitionDuration: Durees.rapide,
+    pageBuilder: (context, _, __) => construire(context),
+    transitionsBuilder: (_, animation, __, enfant) {
+      final courbe = CurvedAnimation(parent: animation, curve: Courbes.sortie);
+      return FadeTransition(
+        opacity: courbe,
+        child: SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(courbe),
+          child: enfant,
+        ),
+      );
+    },
+  );
+}

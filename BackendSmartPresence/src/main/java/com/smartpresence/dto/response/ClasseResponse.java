@@ -24,6 +24,12 @@ public class ClasseResponse {
     private String code;
     private String libelle;
     private PromotionResponse promotion;
+    private Long filiereId;
+    private String filiereLibelle;
+    private Long optionId;
+    private String optionLibelle;
+    private Long classePrecedenteId;
+    private String classePrecedenteCode;
     private int nombreEtudiants;
 
     /**

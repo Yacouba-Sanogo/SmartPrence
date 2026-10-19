@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="640" fill="#ffffff"/>
+  <text x="450" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#132c73">SmartPresence — branchement du lecteur ESP32-S3 N16R8</text>
+  <text x="450" y="56" text-anchor="middle" font-size="12" fill="#5d667f">Toutes les liaisons en 3,3 V. Rouge = alimentation, noir = masse, bleu = signal.</text>
+
+  <!-- Carte ESP32-S3 -->
+  <rect x="330" y="80" width="240" height="520" rx="14" fill="#eaf0fe" stroke="#132c73" stroke-width="2"/>
+  <text x="450" y="108" text-anchor="middle" font-size="15" font-weight="700" fill="#132c73">ESP32-S3-DevKitC-1</text>
+  <text x="450" y="126" text-anchor="middle" font-size="11" fill="#5d667f">N16R8 — brancher par le port « UART »</text>
+
+  <g font-size="12" fill="#0f1729">
+    <text x="344" y="170">3V3</text>
+    <text x="344" y="210">GND</text>
+    <text x="344" y="250">GPIO 17  (TX1)</text>
+    <text x="344" y="290">GPIO 18  (RX1)</text>
+    <text x="344" y="330">GPIO 4</text>
+    <text x="344" y="370">GPIO 8   (SDA)</text>
+    <text x="344" y="410">GPIO 9   (SCL)</text>
+    <text x="344" y="450">GPIO 5</text>
+    <text x="344" y="490">GPIO 6</text>
+    <text x="344" y="530">GPIO 7</text>
+    <text x="344" y="570">GPIO 15</text>
+  </g>
+
+  <!-- AS608 -->
+  <rect x="30" y="150" width="210" height="190" rx="12" fill="#fff" stroke="#1b3fa0" stroke-width="2"/>
+  <text x="135" y="176" text-anchor="middle" font-size="14" font-weight="700" fill="#1b3fa0">Capteur AS608</text>
+  <g font-size="12" fill="#0f1729">
+    <text x="46" y="210">VCC</text><text x="46" y="236">GND</text><text x="46" y="262">TX</text>
+    <text x="46" y="288">RX</text><text x="46" y="314">WAKEUP / TOUCH</text>
+  </g>
+  <g stroke-width="2" fill="none">
+    <path d="M240 206 H300 V166 H330" stroke="#c0392b"/>
+    <path d="M240 232 H290 V206 H330" stroke="#111"/>
+    <path d="M240 284 H280 V246 H330" stroke="#1b3fa0"/>
+    <path d="M240 258 H270 V286 H330" stroke="#1b3fa0"/>
+    <path d="M240 310 H260 V326 H330" stroke="#1b3fa0"/>
+  </g>
+  <text x="250" y="352" font-size="11" fill="#a32b2b">TX du capteur -> GPIO 18 ; RX du capteur <- GPIO 17 (croisés)</text>
+
+  <!-- I2C : DS3231 + OLED -->
+  <rect x="660" y="150" width="210" height="110" rx="12" fill="#fff" stroke="#1b3fa0" stroke-width="2"/>
+  <text x="765" y="174" text-anchor="middle" font-size="14" font-weight="700" fill="#1b3fa0">Horloge DS3231</text>
+  <text x="676" y="204" font-size="12">VCC  GND  SDA  SCL</text>
+  <text x="676" y="230" font-size="11" fill="#5d667f">adresse I2C 0x68</text>
+  <rect x="660" y="290" width="210" height="110" rx="12" fill="#fff" stroke="#1b3fa0" stroke-width="2"/>
+  <text x="765" y="314" text-anchor="middle" font-size="14" font-weight="700" fill="#1b3fa0">Afficheur OLED SSD1306</text>
+  <text x="676" y="344" font-size="12">VCC  GND  SDA  SCL</text>
+  <text x="676" y="370" font-size="11" fill="#5d667f">128x64, adresse I2C 0x3C</text>
+  <g stroke-width="2" fill="none">
+    <path d="M570 366 H620 V204 H660" stroke="#1b3fa0"/>
+    <path d="M570 366 H620 V344 H660" stroke="#1b3fa0"/>
+    <path d="M570 406 H636 V218 H660" stroke="#1b3fa0"/>
+    <path d="M570 406 H636 V358 H660" stroke="#1b3fa0"/>
+  </g>
+  <text x="590" y="432" font-size="11" fill="#5d667f">SDA et SCL partagés</text>
+  <text x="590" y="446" font-size="11" fill="#5d667f">(VCC -> 3V3, GND -> GND)</text>
+
+  <!-- Signalisation -->
+  <rect x="660" y="440" width="210" height="150" rx="12" fill="#fff" stroke="#1b3fa0" stroke-width="2"/>
+  <text x="765" y="464" text-anchor="middle" font-size="14" font-weight="700" fill="#1b3fa0">Signalisation</text>
+  <g font-size="12" fill="#0f1729">
+    <text x="676" y="490">LED verte + 220 ohms</text>
+    <text x="676" y="516">LED rouge + 220 ohms</text>
+    <text x="676" y="542">Buzzer passif</text>
+    <text x="676" y="568">Bouton (appui long)</text>
+  </g>
+  <g stroke-width="2" fill="none" stroke="#1b3fa0">
+    <path d="M570 446 H600 V486 H660"/>
+    <path d="M570 486 H610 V512 H660"/>
+    <path d="M570 526 H620 V538 H660"/>
+    <path d="M570 566 H630 V564 H660"/>
+  </g>
+
+  <text x="30" y="600" font-size="12" fill="#5d667f">L'autre patte de chaque LED, du buzzer et du bouton va à la masse (GND).</text>
+  <text x="30" y="618" font-size="12" fill="#a32b2b">Ne jamais utiliser les GPIO 26 à 37 : flash et PSRAM de la carte N16R8.</text>
+</svg>

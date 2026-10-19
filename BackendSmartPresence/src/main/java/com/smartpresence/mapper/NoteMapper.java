@@ -27,6 +27,7 @@ public interface NoteMapper {
     @Mapping(target = "matiereCode", source = "matiere.code")
     @Mapping(target = "matiereLibelle", source = "matiere.libelle")
     @Mapping(target = "enseignantId", source = "enseignant.id")
+    @Mapping(target = "evaluationId", source = "evaluation.id")
     @Mapping(target = "enseignantNom", source = "enseignant", qualifiedByName = "nomComplet")
     NoteResponse toResponse(Note note);
 

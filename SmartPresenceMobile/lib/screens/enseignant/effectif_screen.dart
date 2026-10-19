@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/erreurs.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/design/animations.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
 import '../../models/etudiant_inscrit.dart';
 import '../../models/seance.dart';
 import '../../services/enseignant_service.dart';
 import '../../widgets/communs.dart';
+import '../../widgets/entete.dart';
+import 'evaluations_screen.dart';
 import 'notes_classe_screen.dart';
+import 'programme_screen.dart';
+import 'supports_screen.dart';
 
 /// Effectif nominatif d'une classe.
 ///
@@ -65,38 +70,48 @@ class _EffectifScreenState extends State<EffectifScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => NotesClasseScreen(auth: widget.auth, classe: widget.classe),
-          ),
-        ),
-        backgroundColor: Couleurs.indigo600,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.school_rounded, size: 19),
-        label: const Text('Notes'),
-      ),
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.classe.libelle.isEmpty ? widget.classe.code : widget.classe.libelle,
-              style: Typo.titreSection,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      backgroundColor: Couleurs.fond,
+      body: Column(
+        children: [
+          EnteteDegrade(
+            debordement: 30,
+            padding: const EdgeInsets.fromLTRB(Espaces.sm, Espaces.sm, Espaces.lg, Espaces.md),
+            enfant: Row(
+              children: [
+                ActionEntete(icone: Icons.arrow_back_rounded, surTap: () => Navigator.of(context).maybePop()),
+                const SizedBox(width: Espaces.xs),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.classe.libelle.isEmpty ? widget.classe.code : widget.classe.libelle,
+                        style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 19),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(widget.classe.promotion ?? widget.classe.code,
+                          style: Typo.legende.copyWith(
+                              color: Colors.white.withValues(alpha: 0.72), fontSize: 11.5)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Text(widget.classe.promotion ?? widget.classe.code, style: Typo.legende),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        top: false,
-        child: RefreshIndicator(
-          onRefresh: _charger,
-          color: Couleurs.indigo600,
-          child: _corps(),
-        ),
+          ),
+          Expanded(
+            child: Transform.translate(
+              offset: const Offset(0, -24),
+              child: RefreshIndicator(
+                onRefresh: _charger,
+                color: Couleurs.indigo600,
+                child: _corps(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -142,6 +157,8 @@ class _EffectifScreenState extends State<EffectifScreen> {
       padding: const EdgeInsets.fromLTRB(
           Espaces.lg, Espaces.md, Espaces.lg, Espaces.xxxl),
       children: [
+        _raccourcis(),
+        const SizedBox(height: Espaces.lg),
         if (_nonEnroles > 0)
           Padding(
             padding: const EdgeInsets.only(bottom: Espaces.md),
@@ -163,6 +180,57 @@ class _EffectifScreenState extends State<EffectifScreen> {
         ),
         const SizedBox(height: Espaces.sm),
         ..._etudiants.map(_ligne),
+      ],
+    );
+  }
+
+  /// Ce que l'enseignant fait de cette classe : noter, évaluer, tenir son programme.
+  Widget _raccourcis() {
+    Widget bouton(IconData icone, String libelle, Widget Function() ecran) => Expanded(
+          child: Carte(
+            surTap: () => Navigator.of(context).push<void>(
+              routeDouce<void>((_) => ecran()),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: Espaces.md + 2),
+            enfant: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Couleurs.royal50,
+                    borderRadius: BorderRadius.circular(Rayons.md),
+                  ),
+                  child: Icon(icone, size: 20, color: Couleurs.indigo600),
+                ),
+                const SizedBox(height: Espaces.sm),
+                Text(libelle, style: Typo.libelle.copyWith(fontSize: 12.5)),
+              ],
+            ),
+          ),
+        );
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            bouton(Icons.school_rounded, 'Notes',
+                () => NotesClasseScreen(auth: widget.auth, classe: widget.classe)),
+            const SizedBox(width: Espaces.sm),
+            bouton(Icons.quiz_rounded, 'Évaluations',
+                () => EvaluationsScreen(auth: widget.auth, classe: widget.classe)),
+          ],
+        ),
+        const SizedBox(height: Espaces.sm),
+        Row(
+          children: [
+            bouton(Icons.menu_book_rounded, 'Programme',
+                () => ProgrammeScreen(auth: widget.auth, classe: widget.classe)),
+            const SizedBox(width: Espaces.sm),
+            bouton(Icons.folder_copy_rounded, 'Supports',
+                () => SupportsScreen(auth: widget.auth, classe: widget.classe)),
+          ],
+        ),
       ],
     );
   }

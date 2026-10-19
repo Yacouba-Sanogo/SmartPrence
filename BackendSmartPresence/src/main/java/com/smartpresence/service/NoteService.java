@@ -47,4 +47,20 @@ public interface NoteService {
 
     /** Bulletin d'un étudiant, vu par l'administration. */
     BulletinResponse bulletinDe(UUID etudiantId, PeriodeScolaire periode);
+
+    // ------------------------------------------------------------------
+    // Circuit de validation : BROUILLON → TRANSMISE → VALIDEE
+    // ------------------------------------------------------------------
+
+    /** Envoie à l'administration des brouillons de l'enseignant ; ils sont alors verrouillés. */
+    List<NoteResponse> transmettre(UUID utilisateurId, List<UUID> noteIds);
+
+    /** File de l'administration : notes transmises, filtrables par classe. */
+    List<NoteResponse> notesAValider(Long classeId);
+
+    /** Publie des notes transmises : elles entrent alors dans les bulletins. */
+    List<NoteResponse> valider(List<UUID> noteIds);
+
+    /** Renvoie des notes transmises à leur auteur, avec le motif à corriger. */
+    List<NoteResponse> renvoyer(List<UUID> noteIds, String motif);
 }

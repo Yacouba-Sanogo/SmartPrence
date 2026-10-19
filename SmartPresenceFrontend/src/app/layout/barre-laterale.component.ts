@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AttenteService } from '../core/services/attente.service';
 import { AuthService } from '../core/services/auth.service';
 import { IconeComponent } from '../shared/ui/icone.component';
 import { LogoEnetpComponent } from '../shared/ui/logo-enetp.component';
+import { MotDePasseDialogComponent } from './mot-de-passe-dialog.component';
 import { GroupeNavigation, NAVIGATION } from './navigation';
 
 /**
@@ -18,7 +19,7 @@ import { GroupeNavigation, NAVIGATION } from './navigation';
   selector: 'sp-barre-laterale',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, IconeComponent, LogoEnetpComponent],
+  imports: [RouterLink, RouterLinkActive, IconeComponent, LogoEnetpComponent, MotDePasseDialogComponent],
   template: `
     <aside class="flex h-full w-[248px] shrink-0 flex-col bg-royal-800 px-3.5 pt-5 pb-4.5">
       <!--
@@ -76,6 +77,15 @@ import { GroupeNavigation, NAVIGATION } from './navigation';
 
         <button
           type="button"
+          (click)="motDePasseOuvert.set(true)"
+          class="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-[13.5px] text-royal-100/85 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <sp-icone nom="bouclier" [taille]="18" />
+          <span>Mot de passe</span>
+        </button>
+
+        <button
+          type="button"
           (click)="auth.logout()"
           class="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-[13.5px] text-royal-100/85 transition-colors hover:bg-danger hover:text-white"
         >
@@ -84,9 +94,14 @@ import { GroupeNavigation, NAVIGATION } from './navigation';
         </button>
       </div>
     </aside>
+
+    @if (motDePasseOuvert()) {
+      <sp-mot-de-passe-dialog (fermer)="motDePasseOuvert.set(false)" />
+    }
   `,
 })
 export class BarreLateraleComponent {
+  readonly motDePasseOuvert = signal(false);
   readonly auth = inject(AuthService);
   readonly attente = inject(AttenteService);
 

@@ -1,4 +1,5 @@
 import '../core/api/client_api.dart';
+import '../models/gestion.dart';
 import '../models/note.dart';
 import '../models/presence.dart';
 import '../models/releve.dart';
@@ -48,6 +49,35 @@ class EtudiantService {
     });
     if (donnees == null) return Bulletin.vide;
     return Bulletin.depuisJson(donnees as Map<String, dynamic>);
+  }
+
+  /// Supports de cours publiés pour la classe de l'étudiant.
+  Future<List<SupportCours>> supportsDeCours() async {
+    final donnees = await _client.get('/moi/supports');
+    if (donnees is! List) return const [];
+    return donnees.map((e) => SupportCours.depuisJson(e as Map<String, dynamic>)).toList();
+  }
+
+  // ----- Contestations --------------------------------------------------
+
+  /// Notes publiées de l'étudiant, à plat : ce qu'il peut contester.
+  Future<List<Note>> notesContestables() async {
+    final bulletin = await monBulletin();
+    return bulletin.matieres
+        .expand((m) => m.notes)
+        .toList();
+  }
+
+  Future<List<Reclamation>> mesContestations() async {
+    final donnees = await _client.get('/moi/reclamations');
+    if (donnees is! List) return const [];
+    return donnees.map((e) => Reclamation.depuisJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Reclamation> contester(String noteId, String motif) async {
+    final donnees = await _client.post('/moi/notes/$noteId/reclamation',
+        corps: {'motif': motif.trim()});
+    return Reclamation.depuisJson(donnees as Map<String, dynamic>);
   }
 
   /// Relevé de notes LMD du semestre : UE, ECUE, crédits et décision.

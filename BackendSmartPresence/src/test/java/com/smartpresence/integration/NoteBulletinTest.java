@@ -199,6 +199,7 @@ class NoteBulletinTest extends IntegrationTestBase {
 
         assertThat(bulletinEtudiant(d).get("nombreNotes").asInt()).isEqualTo(2);
 
+        publierLesNotes(d.jetonEnseignant, d.classeId);
         JsonNode s2 = donnees(mockMvc.perform(avecJeton(
                         get("/moi/bulletin").param("periode", "SEMESTRE_2"), d.jetonEtudiant))
                 .andExpect(status().isOk()).andReturn());
@@ -244,6 +245,8 @@ class NoteBulletinTest extends IntegrationTestBase {
     }
 
     private JsonNode bulletinEtudiant(Decor d) throws Exception {
+        publierLesNotes(d.jetonEnseignant, d.classeId);
+        publierLesNotes(d.jetonSecondEnseignant, d.classeId);
         return donnees(mockMvc.perform(avecJeton(get("/moi/bulletin"), d.jetonEtudiant))
                 .andExpect(status().isOk())
                 .andReturn());

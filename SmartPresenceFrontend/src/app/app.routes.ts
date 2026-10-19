@@ -89,6 +89,39 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'notes-a-valider',
+        canActivate: [roleGuard],
+        data: {
+          titre: 'Validation des notes',
+          rubrique: 'Vie académique',
+          roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+        },
+        loadComponent: () =>
+          import('./features/notes/notes-a-valider.component').then((m) => m.NotesAValiderComponent),
+      },
+      {
+        path: 'conges',
+        canActivate: [roleGuard],
+        data: {
+          titre: 'Demandes de congé',
+          rubrique: 'Vie académique',
+          roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+        },
+        loadComponent: () =>
+          import('./features/conges/conges-a-traiter.component').then((m) => m.CongesATraiterComponent),
+      },
+      {
+        path: 'annonces',
+        canActivate: [roleGuard],
+        data: {
+          titre: 'Annonces',
+          rubrique: 'Vie académique',
+          roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+        },
+        loadComponent: () =>
+          import('./features/annonces/annonce-nouvelle.component').then((m) => m.AnnonceNouvelleComponent),
+      },
+      {
         path: 'justificatifs',
         canActivate: [roleGuard],
         data: {
@@ -126,6 +159,17 @@ export const routes: Routes = [
           import('./features/classes/classes-liste.component').then(
             (m) => m.ClassesListeComponent,
           ),
+      },
+      {
+        path: 'passage',
+        canActivate: [roleGuard],
+        data: {
+          titre: 'Passage de classe',
+          rubrique: 'Vie académique',
+          roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
+        },
+        loadComponent: () =>
+          import('./features/classes/passage.component').then((m) => m.PassageComponent),
       },
       {
         path: 'seances',

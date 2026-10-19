@@ -34,6 +34,9 @@ public final class TableNames {
     public static final String JUSTIFICATIONS_ABSENCE = "justifications_absence";
     public static final String NOTIFICATIONS = "notifications";
     public static final String PARAMETRES_ETABLISSEMENT = "parametres_etablissement";
+    public static final String DEPARTEMENTS = "departements";
+    public static final String FILIERES = "filieres";
+    public static final String OPTIONS_FILIERE = "options_filiere";
     public static final String CLASSES = "classes";
     public static final String PROMOTIONS = "promotions";
     public static final String SALLES = "salles";
@@ -45,6 +48,14 @@ public final class TableNames {
     public static final String NUMEROS_CENOU = "numeros_cenou";
     public static final String DEMANDES_ENROLEMENT = "demandes_enrolement";
     public static final String UNITES_ENSEIGNEMENT = "unites_enseignement";
+    public static final String DEMANDES_CONGE = "demandes_conge";
+    public static final String RECLAMATIONS = "reclamations";
+    public static final String SUPPORTS_COURS = "supports_cours";
+    public static final String SUPPORTS_CONTENU = "supports_contenu";
+    public static final String CHAPITRES = "chapitres";
+    public static final String CAHIERS_TEXTES = "cahiers_textes";
+    public static final String EVALUATIONS = "evaluations";
+    public static final String ABSENCES_EVALUATION = "absences_evaluation";
 
     // ---------------- Tables de jointure ----------------
     public static final String JOIN_UTILISATEURS_ROLES = "utilisateurs_roles";

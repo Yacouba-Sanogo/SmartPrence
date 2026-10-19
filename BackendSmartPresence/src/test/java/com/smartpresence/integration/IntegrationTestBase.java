@@ -81,6 +81,34 @@ abstract class IntegrationTestBase {
                 .get("data");
     }
 
+    /**
+     * Fait suivre aux brouillons d'une classe le circuit complet : transmission par
+     * l'enseignant, puis validation par l'administration. Sans cela, aucune note
+     * n'apparaît dans un bulletin.
+     */
+    protected void publierLesNotes(String jetonEnseignant, long classeId) throws Exception {
+        MvcResult notes = mockMvc.perform(avecJeton(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                .get("/moi/classes/" + classeId + "/notes"), jetonEnseignant))
+                .andExpect(status().isOk()).andReturn();
+        java.util.List<String> brouillons = new java.util.ArrayList<>();
+        for (JsonNode note : donnees(notes)) {
+            if ("BROUILLON".equals(note.get("statut").asText())) {
+                brouillons.add(note.get("id").asText());
+            }
+        }
+        if (brouillons.isEmpty()) {
+            return;
+        }
+        String lot = enJson(java.util.Map.of("noteIds", brouillons));
+        mockMvc.perform(avecJeton(post("/moi/notes/transmettre"), jetonEnseignant)
+                        .contentType(MediaType.APPLICATION_JSON).content(lot))
+                .andExpect(status().isOk());
+        mockMvc.perform(avecJeton(post("/notes/validation"), jetonAdmin)
+                        .contentType(MediaType.APPLICATION_JSON).content(lot))
+                .andExpect(status().isOk());
+    }
+
     protected String enJson(Object valeur) throws Exception {
         return objectMapper.writeValueAsString(valeur);
     }

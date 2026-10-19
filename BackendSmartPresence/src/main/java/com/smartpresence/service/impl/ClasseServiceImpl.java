@@ -5,7 +5,11 @@ import com.smartpresence.dto.response.ClasseDetailResponse;
 import com.smartpresence.dto.response.ClasseResponse;
 import com.smartpresence.entity.Classe;
 import com.smartpresence.entity.Personnel;
+import com.smartpresence.entity.Filiere;
+import com.smartpresence.entity.OptionFiliere;
+import com.smartpresence.repository.OptionFiliereRepository;
 import com.smartpresence.entity.Promotion;
+import com.smartpresence.repository.FiliereRepository;
 import com.smartpresence.exception.BusinessException;
 import com.smartpresence.exception.ResourceNotFoundException;
 import com.smartpresence.mapper.ClasseMapper;
@@ -31,6 +35,8 @@ public class ClasseServiceImpl implements ClasseService {
 
     private final ClasseRepository classeRepository;
     private final PromotionRepository promotionRepository;
+    private final FiliereRepository filiereRepository;
+    private final OptionFiliereRepository optionFiliereRepository;
     private final PersonnelRepository personnelRepository;
     private final EtudiantRepository etudiantRepository;
     private final ClasseMapper classeMapper;
@@ -64,6 +70,8 @@ public class ClasseServiceImpl implements ClasseService {
         }
         Classe classe = classeMapper.toEntity(request);
         classe.setPromotion(getPromotion(request.getPromotionId()));
+        classe.setFiliere(getFiliere(request.getFiliereId()));
+        appliquerParcours(classe, request);
         classe.setEnseignants(resolveEnseignants(request.getEnseignantIds()));
         return classeMapper.toResponse(classeRepository.save(classe));
     }
@@ -77,6 +85,12 @@ public class ClasseServiceImpl implements ClasseService {
         }
         classeMapper.updateEntityFromRequest(request, classe);
         classe.setPromotion(getPromotion(request.getPromotionId()));
+        // Absente de la requête, la filière est conservée : les clients antérieurs au
+        // référentiel (le web actuel) ne la connaissent pas et la détacheraient sinon.
+        if (request.getFiliereId() != null) {
+            classe.setFiliere(getFiliere(request.getFiliereId()));
+        }
+        appliquerParcours(classe, request);
         if (request.getEnseignantIds() != null) {
             classe.setEnseignants(resolveEnseignants(request.getEnseignantIds()));
         }
@@ -90,12 +104,62 @@ public class ClasseServiceImpl implements ClasseService {
         if (etudiantRepository.countByClasseId(id) > 0) {
             throw new BusinessException("Impossible de supprimer une classe contenant des étudiants", HttpStatus.CONFLICT);
         }
+        if (!classeRepository.findByClassePrecedenteId(id).isEmpty()) {
+            throw new BusinessException(
+                    "Cette classe est la classe précédente d'une autre : retirez d'abord ce lien",
+                    HttpStatus.CONFLICT);
+        }
         classeRepository.delete(classe);
     }
 
     private Classe getClasse(Long id) {
         return classeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Classe", "id", id));
+    }
+
+    /**
+     * Option et classe précédente, toutes deux facultatives et conservées quand la
+     * requête les omet.
+     *
+     * <p>L'option doit appartenir à la filière de la classe ; si la classe n'en a pas
+     * encore, elle prend celle de l'option. La classe précédente ne peut ni être la
+     * classe elle-même ni l'un de ses descendants : le lien formerait une boucle et le
+     * passage en année supérieure tournerait indéfiniment.</p>
+     */
+    private void appliquerParcours(Classe classe, ClasseRequest request) {
+        if (request.getOptionId() != null) {
+            OptionFiliere option = optionFiliereRepository.findById(request.getOptionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Option", "id", request.getOptionId()));
+            if (classe.getFiliere() == null) {
+                classe.setFiliere(option.getFiliere());
+            } else if (!classe.getFiliere().getId().equals(option.getFiliere().getId())) {
+                throw new BusinessException(
+                        "L'option « " + option.getLibelle() + " » n'appartient pas à la filière « "
+                                + classe.getFiliere().getLibelle() + " »", HttpStatus.CONFLICT);
+            }
+            classe.setOption(option);
+        }
+
+        if (request.getClassePrecedenteId() != null) {
+            Classe precedente = getClasse(request.getClassePrecedenteId());
+            for (Classe c = precedente; c != null; c = c.getClassePrecedente()) {
+                if (classe.getId() != null && classe.getId().equals(c.getId())) {
+                    throw new BusinessException(
+                            "Une classe ne peut pas être sa propre classe précédente, ni celle d'une "
+                                    + "classe dont elle descend", HttpStatus.CONFLICT);
+                }
+            }
+            classe.setClassePrecedente(precedente);
+        }
+    }
+
+    /** Filière facultative : sans identifiant, la classe n'est rattachée à aucune. */
+    private Filiere getFiliere(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return filiereRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Filière", "id", id));
     }
 
     private Promotion getPromotion(Long id) {

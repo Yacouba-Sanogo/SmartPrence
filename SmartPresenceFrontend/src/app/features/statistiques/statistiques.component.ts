@@ -52,7 +52,7 @@ const MOIS = [
   template: `
     <div class="flex flex-col gap-[18px]">
       <div class="flex flex-wrap items-end gap-5">
-        <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div class="flex min-w-[min(100%,280px)] flex-1 flex-col gap-1.5">
           <h1 class="m-0 text-[25px] font-semibold tracking-tight text-ink">Statistiques</h1>
           <p class="m-0 text-[13px] leading-relaxed text-ink-muted">
             Assiduité de l'établissement, par classe et dans le temps.

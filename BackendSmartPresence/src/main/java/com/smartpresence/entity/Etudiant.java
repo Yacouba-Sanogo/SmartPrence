@@ -51,7 +51,7 @@ import java.util.UUID;
 )
 @Getter
 @Setter
-@ToString(exclude = {"classe", "utilisateur"}) // évite un chargement LAZY involontaire
+@ToString(exclude = {"classe", "utilisateur", "optionChoisie"}) // évite un chargement LAZY involontaire
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Etudiant extends BaseAuditableEntity {
 
@@ -130,6 +130,15 @@ public class Etudiant extends BaseAuditableEntity {
     @JoinColumn(name = "classe_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_etudiants_classe"))
     private Classe classe;
+
+    /**
+     * Option choisie par l'étudiant pour la suite de son cursus. Elle décide de la
+     * classe qu'il rejoint au passage en année supérieure quand sa filière se divise.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "option_choisie_id",
+            foreignKey = @ForeignKey(name = "fk_etudiants_option_choisie"))
+    private OptionFiliere optionChoisie;
 
     /**
      * Compte de connexion de l'étudiant, pour l'application mobile.

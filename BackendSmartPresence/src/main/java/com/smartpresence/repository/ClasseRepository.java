@@ -58,4 +58,7 @@ public interface ClasseRepository extends JpaRepository<Classe, Long> {
      */
     List<Classe> findByPromotionId(Long promotionId);
 
+    /** Classes supérieures : celles dont les étudiants viennent de la classe donnée. */
+    List<Classe> findByClassePrecedenteId(Long classePrecedenteId);
+
 }

@@ -34,7 +34,7 @@ import { AppareilDialogComponent } from './appareil-dialog.component';
   template: `
     <div class="flex flex-col gap-[18px]">
       <div class="flex flex-wrap items-end gap-5">
-        <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div class="flex min-w-[min(100%,280px)] flex-1 flex-col gap-1.5">
           <h1 class="m-0 text-[25px] font-semibold tracking-tight text-ink">Appareils ESP32</h1>
           <p class="m-0 text-[13px] leading-relaxed text-ink-muted">
             Parc des lecteurs biométriques déployés, leurs clés d'accès et leur activité de
@@ -54,7 +54,7 @@ import { AppareilDialogComponent } from './appareil-dialog.component';
       </div>
 
       @if (injoignables() > 0 && !chargement()) {
-        <div class="flex items-center gap-3.5 rounded-[12px] border border-alerte-line bg-[#FFF9EC] px-4 py-3.5">
+        <div class="flex flex-wrap items-center gap-3.5 rounded-[12px] border border-alerte-line bg-[#FFF9EC] px-4 py-3.5">
           <span class="grid size-8 shrink-0 place-items-center rounded-[9px] bg-alerte-bg text-alerte">
             <sp-icone nom="alerte" [taille]="17" [epaisseur]="1.7" />
           </span>

@@ -291,6 +291,7 @@ public class ProfilServiceImpl implements ProfilService {
                 .fin(s.getFin())
                 .statut(s.getStatut())
                 .note(s.getNote())
+                .declareeLe(s.getDeclareeLe())
                 .build();
     }
 

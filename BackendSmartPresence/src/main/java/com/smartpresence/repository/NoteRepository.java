@@ -23,12 +23,19 @@ import java.util.UUID;
 @Repository
 public interface NoteRepository extends JpaRepository<Note, UUID> {
 
-    /** Notes d'un etudiant, toutes matieres, filtrables par periode. */
+    /**
+     * Notes publiees d'un etudiant, toutes matieres, filtrables par periode.
+     *
+     * <p>Seules les notes validees : un brouillon ou une note en attente de decision
+     * n'appartient pas encore au bulletin, et le montrer ferait varier les moyennes
+     * d'un etudiant au gre des saisies de ses enseignants.</p>
+     */
     @Query("""
             SELECT n FROM Note n
             JOIN FETCH n.matiere
             JOIN FETCH n.enseignant
             WHERE n.etudiant.id = :etudiantId
+              AND n.statut = com.smartpresence.constants.StatutNote.VALIDEE
               AND (:periode IS NULL OR n.periode = :periode)
             ORDER BY n.dateEvaluation DESC
             """)
@@ -60,6 +67,42 @@ public interface NoteRepository extends JpaRepository<Note, UUID> {
             WHERE n.id = :id
             """)
     Optional<Note> findAvecContexte(@Param("id") UUID id);
+
+    /** Notes issues d'une evaluation, avec l'etudiant. */
+    @Query("""
+            SELECT n FROM Note n
+            JOIN FETCH n.etudiant
+            JOIN FETCH n.matiere
+            JOIN FETCH n.enseignant
+            WHERE n.evaluation.id = :evaluationId
+            """)
+    List<Note> findParEvaluation(@Param("evaluationId") UUID evaluationId);
+
+    /** Notes a un statut donne, pour la file de validation de l'administration. */
+    @Query("""
+            SELECT n FROM Note n
+            JOIN FETCH n.matiere
+            JOIN FETCH n.enseignant
+            JOIN FETCH n.etudiant e
+            JOIN FETCH e.classe c
+            WHERE n.statut = :statut
+              AND (:classeId IS NULL OR c.id = :classeId)
+            ORDER BY c.code ASC, n.matiere.libelle ASC, e.nom ASC, e.prenom ASC
+            """)
+    List<Note> findParStatut(@Param("statut") com.smartpresence.constants.StatutNote statut,
+                             @Param("classeId") Long classeId);
+
+    /** Lot de notes avec leur contexte, pour transmettre, valider ou renvoyer. */
+    @Query("""
+            SELECT n FROM Note n
+            JOIN FETCH n.matiere
+            JOIN FETCH n.enseignant
+            JOIN FETCH n.etudiant e
+            WHERE n.id IN :ids
+            """)
+    List<Note> findAvecContexteParIds(@Param("ids") java.util.Collection<UUID> ids);
+
+    long countByEvaluationId(UUID evaluationId);
 
     /** Nombre de notes rattachees a une matiere, pour refuser sa suppression. */
     long countByMatiereId(Long matiereId);

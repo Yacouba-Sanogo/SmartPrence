@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { catchError, forkJoin, of } from 'rxjs';
 import { messageErreur } from '../../core/api';
-import { Classe, Promotion, libellePromotion } from '../../core/models/classe.model';
+import { Classe, Filiere, Promotion, libellePromotion } from '../../core/models/classe.model';
 import { Personnel } from '../../core/models/personnel.model';
 import { ClasseService } from '../../core/services/classe.service';
 import { PersonnelService } from '../../core/services/personnel.service';
@@ -32,7 +32,7 @@ import { ClasseDialogComponent } from './classe-dialog.component';
   template: `
     <div class="flex flex-col gap-[18px]">
       <div class="flex flex-wrap items-end gap-5">
-        <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div class="flex min-w-[min(100%,280px)] flex-1 flex-col gap-1.5">
           <h1 class="m-0 text-[25px] font-semibold tracking-tight text-ink">Classes</h1>
           <p class="m-0 text-[13px] leading-relaxed text-ink-muted">
             Composition des classes et rattachement de l'équipe pédagogique.
@@ -247,6 +247,8 @@ import { ClasseDialogComponent } from './classe-dialog.component';
         [classe]="classeEnEdition()"
         [promotions]="promotions()"
         [enseignants]="enseignants()"
+        [filieres]="filieres()"
+        [classes]="classes()"
         [enseignantsActuels]="enseignantsActuels()"
         (fermer)="fermerDialogue()"
         (enregistre)="apresEnregistrement()"
@@ -264,6 +266,7 @@ export class ClassesListeComponent {
 
   readonly classes = signal<Classe[]>([]);
   readonly promotions = signal<Promotion[]>([]);
+  readonly filieres = signal<Filiere[]>([]);
   readonly enseignants = signal<Personnel[]>([]);
 
   readonly chargement = signal(false);
@@ -357,8 +360,10 @@ export class ClassesListeComponent {
       enseignants: this.personnelService
         .lister({ type: 'ENSEIGNANT' })
         .pipe(catchError(() => of([] as Personnel[]))),
+      filieres: this.service.listerFilieres().pipe(catchError(() => of([] as Filiere[]))),
     }).subscribe({
-      next: ({ classes, promotions, enseignants }) => {
+      next: ({ classes, promotions, enseignants, filieres }) => {
+        this.filieres.set(filieres ?? []);
         this.classes.set(classes ?? []);
         this.promotions.set(promotions ?? []);
         this.enseignants.set(enseignants ?? []);

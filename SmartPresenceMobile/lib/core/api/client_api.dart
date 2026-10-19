@@ -57,15 +57,68 @@ class ClientApi {
         ));
   }
 
+  Future<dynamic> patch(String chemin, {Object? corps}) {
+    return _executer(() => _client.patch(
+          _uri(chemin),
+          headers: _entetes,
+          body: corps == null ? null : jsonEncode(corps),
+        ));
+  }
+
+  /// Envoie un fichier avec ses champs de formulaire.
+  ///
+  /// Le délai est plus large que celui des requêtes ordinaires : un PDF de plusieurs
+  /// mégaoctets sur une connexion mobile ne tient pas dans quelques secondes.
+  Future<dynamic> televerser(
+    String chemin, {
+    required Map<String, String> champs,
+    required String champFichier,
+    required List<int> octets,
+    required String nomFichier,
+  }) {
+    return _executer(() async {
+      final requete = http.MultipartRequest('POST', _uri(chemin))
+        ..headers.addAll({
+          'Accept': 'application/json',
+          if (_jeton != null) 'Authorization': 'Bearer $_jeton',
+        })
+        ..fields.addAll(champs)
+        ..files.add(http.MultipartFile.fromBytes(champFichier, octets, filename: nomFichier));
+      return http.Response.fromStream(await _client.send(requete));
+    }, delai: delaiTransfert);
+  }
+
+  /// Récupère le contenu brut d'un fichier. Les erreurs gardent le message du serveur.
+  Future<List<int>> telechargerOctets(String chemin) async {
+    final http.Response reponse;
+    try {
+      reponse = await _client
+          .get(_uri(chemin), headers: {if (_jeton != null) 'Authorization': 'Bearer $_jeton'})
+          .timeout(delaiTransfert);
+    } catch (_) {
+      throw const ErreurApi(MessagesErreur.horsLigne);
+    }
+    if (reponse.statusCode >= 200 && reponse.statusCode < 300) return reponse.bodyBytes;
+    if (reponse.statusCode == 401) surSessionExpiree?.call();
+    final enveloppe = _decoder(utf8.decode(reponse.bodyBytes, allowMalformed: true));
+    final message = enveloppe?['message'] as String?;
+    throw ErreurApi(
+      message?.isNotEmpty == true ? message! : MessagesErreur.pourStatut(reponse.statusCode),
+      statut: reponse.statusCode,
+    );
+  }
+
+  static const Duration delaiTransfert = Duration(seconds: 90);
+
   Future<dynamic> delete(String chemin) {
     return _executer(() => _client.delete(_uri(chemin), headers: _entetes));
   }
 
   /// Exécute la requête et renvoie le contenu du champ `data`.
-  Future<dynamic> _executer(Future<http.Response> Function() requete) async {
+  Future<dynamic> _executer(Future<http.Response> Function() requete, {Duration? delai}) async {
     final http.Response reponse;
     try {
-      reponse = await requete().timeout(ConfigApi.delaiMax);
+      reponse = await requete().timeout(delai ?? ConfigApi.delaiMax);
     } on TimeoutException {
       throw const ErreurApi(MessagesErreur.horsLigne);
     } catch (_) {

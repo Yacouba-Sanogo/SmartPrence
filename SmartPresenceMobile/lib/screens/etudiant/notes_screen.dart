@@ -11,6 +11,7 @@ import '../../services/etudiant_service.dart';
 import '../../widgets/anneau.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
+import 'contestations_screen.dart';
 
 /// Relevé de notes de l'étudiant, au format LMD.
 ///
@@ -123,8 +124,21 @@ class _NotesScreenState extends State<NotesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Mes notes',
-              style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 21)),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Mes notes',
+                    style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 21)),
+              ),
+              // Un recours, pas un geste courant : discret, mais à portée de la main.
+              ActionEntete(
+                icone: Icons.rate_review_outlined,
+                surTap: () => Navigator.of(context).push<void>(
+                  routeDouce<void>((_) => ContestationsScreen(auth: widget.auth)),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 3),
           Text(
             _releve.classeLibelle ?? _releve.promotionLibelle ?? 'Relevé de notes',

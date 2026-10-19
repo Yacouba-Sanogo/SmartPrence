@@ -105,7 +105,16 @@ class Note {
     this.etudiantId,
     this.etudiantNom,
     this.etudiantPrenom,
+    this.statut = 'BROUILLON',
+    this.motifRejet,
   });
+
+  /// `BROUILLON`, `TRANSMISE` ou `VALIDEE`. Côté étudiant, le serveur n'envoie que des
+  /// notes validées.
+  final String statut;
+  final String? motifRejet;
+
+  bool get modifiable => statut == 'BROUILLON';
 
   final String id;
   final double valeur;
@@ -148,6 +157,8 @@ class Note {
         etudiantId: json['etudiantId'] as String?,
         etudiantNom: json['etudiantNom'] as String?,
         etudiantPrenom: json['etudiantPrenom'] as String?,
+        statut: json['statut'] as String? ?? 'VALIDEE',
+        motifRejet: json['motifRejet'] as String?,
       );
 }
 

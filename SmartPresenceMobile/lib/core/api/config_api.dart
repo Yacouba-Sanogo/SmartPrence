@@ -2,16 +2,18 @@ import 'package:flutter/foundation.dart';
 
 /// Adresse du backend selon la plateforme d'exécution.
 ///
-/// Trois situations, résolues dans cet ordre :
+/// Quatre situations, résolues dans cet ordre :
 ///
 /// 1. Une adresse fournie au lancement l'emporte toujours —
 ///    `flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8080/api`
 ///    reste la façon de viser un serveur du réseau local depuis un appareil
 ///    physique, sans recompiler.
-/// 2. En version distribuée (release), le serveur déployé sur Render. Une
+/// 2. Tant que [_viserPosteLocal] est levé, le backend du poste de
+///    développement, en debug comme en release — voir [_posteLocal].
+/// 3. En version distribuée (release), le serveur déployé sur Render. Une
 ///    application installée sur le téléphone d'un étudiant n'a évidemment aucun
 ///    moyen d'atteindre le poste de développement.
-/// 3. En développement, le backend local. L'émulateur Android ne voit pas
+/// 4. En développement, le backend local. L'émulateur Android ne voit pas
 ///    `localhost` : la machine hôte y est exposée sous `10.0.2.2`. Le simulateur
 ///    iOS et le bureau, eux, atteignent `localhost` directement. Cette
 ///    distinction est la cause classique d'un « serveur injoignable » sur un
@@ -24,8 +26,25 @@ class ConfigApi {
   /// Backend déployé (Render). Le contexte `/api` fait partie de l'adresse.
   static const String _production = 'https://smartprence.onrender.com/api';
 
+  /// Backend du poste de développement, pour un téléphone branché en USB.
+  ///
+  /// Sur le téléphone, `localhost` désigne le téléphone lui-même : c'est
+  /// `adb reverse tcp:8080 tcp:8080` qui renvoie ce port vers le poste, par le
+  /// câble — sans Wi-Fi commun ni règle de pare-feu. Le tunnel disparaît à
+  /// chaque débranchement du câble ou redémarrage d'adb : l'application affiche
+  /// alors « Serveur injoignable » sans aucune trace côté serveur, et il suffit
+  /// de relancer la commande. Le même tunnel fonctionne sur l'émulateur.
+  static const String _posteLocal = 'http://localhost:8080/api';
+
+  /// Levé, même une compilation release vise [_posteLocal].
+  ///
+  /// À rabaisser avant de distribuer l'APK : installée chez un étudiant,
+  /// l'application chercherait le serveur sur son propre téléphone.
+  static const bool _viserPosteLocal = false;
+
   static String get baseUrl {
     if (_surcharge.isNotEmpty) return _surcharge;
+    if (_viserPosteLocal) return _posteLocal;
     if (kReleaseMode) return _production;
     if (kIsWeb) return 'http://localhost:8080/api';
     // `defaultTargetPlatform` plutôt que `Platform.isAndroid` : ce dernier vient

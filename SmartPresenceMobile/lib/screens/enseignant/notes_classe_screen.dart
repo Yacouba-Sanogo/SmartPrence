@@ -5,6 +5,7 @@ import '../../core/auth/auth_service.dart';
 import '../../core/dates.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
+import '../../models/enseignement.dart';
 import '../../models/etudiant_inscrit.dart';
 import '../../models/note.dart';
 import '../../models/seance.dart';
@@ -102,6 +103,43 @@ class _NotesClasseScreenState extends State<NotesClasseScreen> {
     if (enregistre && mounted) {
       setState(() => _erreurAction = null);
       _charger();
+    }
+  }
+
+  List<Note> get _brouillons => _notes.where((n) => n.modifiable).toList();
+
+  /// Envoie les brouillons à l'administration. Ils se verrouillent : la décision de les
+  /// publier dans les bulletins ne revient plus à l'enseignant.
+  Future<void> _transmettre() async {
+    final brouillons = _brouillons;
+    if (brouillons.isEmpty) return;
+    final n = brouillons.length;
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Transmettre à l’administration', style: Typo.titreSection),
+        content: Text(
+          '$n note${n > 1 ? 's seront envoyées' : ' sera envoyée'} pour validation. '
+          'Elles ne seront plus modifiables, et n’apparaîtront dans les bulletins '
+          'qu’une fois validées.',
+          style: Typo.corpsAttenue,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Rayons.carte)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Transmettre')),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+    try {
+      await _service.transmettreNotes(brouillons.map((b) => b.id).toList());
+      if (mounted) {
+        setState(() => _erreurAction = null);
+        _charger();
+      }
+    } on ErreurApi catch (e) {
+      if (mounted) setState(() => _erreurAction = e.message);
     }
   }
 
@@ -206,6 +244,11 @@ class _NotesClasseScreenState extends State<NotesClasseScreen> {
                   ],
                 ),
               ),
+              if (_brouillons.isNotEmpty)
+                ActionEntete(
+                  icone: Icons.send_rounded,
+                  surTap: _transmettre,
+                ),
             ],
           ),
           if (_matieres.isNotEmpty) ...[
@@ -420,11 +463,24 @@ class _NotesClasseScreenState extends State<NotesClasseScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(note.libelle,
-                    style: Typo.legende.copyWith(
-                        fontSize: 12, color: Couleurs.encreAttenuee),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(note.libelle,
+                          style: Typo.legende.copyWith(
+                              fontSize: 12, color: Couleurs.encreAttenuee),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(width: Espaces.sm - 2),
+                    Pastille(
+                      texte: statutNoteDepuis(note.statut).libelle,
+                      teinte: statutNoteDepuis(note.statut).teinte,
+                      fond: statutNoteDepuis(note.statut).fond,
+                      compact: true,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 1),
                 Text(
                   '${note.matiereLibelle ?? ''} · coef. ${note.coefficient} · '
@@ -433,23 +489,35 @@ class _NotesClasseScreenState extends State<NotesClasseScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (note.motifRejet != null && note.modifiable)
+                  Text('Renvoyée : ${note.motifRejet}',
+                      style: Typo.legende.copyWith(fontSize: 10.5, color: Couleurs.alerte),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () => _ouvrirSaisie(etudiant: etudiant, note: note),
-            icon: const Icon(Icons.edit_outlined, size: 17),
-            color: Couleurs.encreDiscrete,
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Modifier',
-          ),
-          IconButton(
-            onPressed: () => _supprimer(note),
-            icon: const Icon(Icons.delete_outline_rounded, size: 17),
-            color: Couleurs.encreDiscrete,
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Supprimer',
-          ),
+          // Transmise ou validée, une note n'est plus entre les mains de l'enseignant.
+          if (note.modifiable) ...[
+            IconButton(
+              onPressed: () => _ouvrirSaisie(etudiant: etudiant, note: note),
+              icon: const Icon(Icons.edit_outlined, size: 17),
+              color: Couleurs.encreDiscrete,
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Modifier',
+            ),
+            IconButton(
+              onPressed: () => _supprimer(note),
+              icon: const Icon(Icons.delete_outline_rounded, size: 17),
+              color: Couleurs.encreDiscrete,
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Supprimer',
+            ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.all(Espaces.sm),
+              child: Icon(Icons.lock_outline_rounded, size: 16, color: Couleurs.encrePale),
+            ),
         ],
       ),
     );

@@ -4,7 +4,9 @@ import com.smartpresence.dto.request.ClasseRequest;
 import com.smartpresence.dto.response.ApiResponse;
 import com.smartpresence.dto.response.ClasseDetailResponse;
 import com.smartpresence.dto.response.ClasseResponse;
+import com.smartpresence.dto.response.PassageResponse;
 import com.smartpresence.service.ClasseService;
+import com.smartpresence.service.ParcoursService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +25,7 @@ import java.util.List;
 public class ClasseController {
 
     private final ClasseService classeService;
+    private final ParcoursService parcoursService;
 
     @Operation(summary = "Lister les classes", description = "Récupère la liste de toutes les classes")
     @GetMapping
@@ -56,6 +59,29 @@ public class ClasseController {
     public ResponseEntity<ApiResponse<ClasseResponse>> update(
             @PathVariable Long id, @Valid @RequestBody ClasseRequest request) {
         return ResponseEntity.ok(ApiResponse.success(classeService.update(id, request), "Classe mise à jour"));
+    }
+
+    @Operation(summary = "Passage en année supérieure de toutes les classes",
+            description = "Les étudiants dont tous les semestres sont validés rejoignent la "
+                    + "classe supérieure ; un semestre non validé donne un redoublant, une note "
+                    + "manquante laisse l'étudiant en attente. Sans « appliquer=true », rien n'est "
+                    + "déplacé : la réponse est une simulation à relire. Le même passage "
+                    + "s'exécute seul chaque 1er septembre.")
+    @PostMapping("/passage")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<PassageResponse>> passageGeneral(
+            @RequestParam(defaultValue = "false") boolean appliquer) {
+        return ResponseEntity.ok(ApiResponse.success(parcoursService.passage(null, appliquer),
+                appliquer ? "Passage appliqué" : "Simulation — rien n'a été déplacé"));
+    }
+
+    @Operation(summary = "Passage en année supérieure d'une seule classe")
+    @PostMapping("/{id}/passage")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<PassageResponse>> passage(
+            @PathVariable Long id, @RequestParam(defaultValue = "false") boolean appliquer) {
+        return ResponseEntity.ok(ApiResponse.success(parcoursService.passage(id, appliquer),
+                appliquer ? "Passage appliqué" : "Simulation — rien n'a été déplacé"));
     }
 
     @Operation(summary = "Supprimer une classe")

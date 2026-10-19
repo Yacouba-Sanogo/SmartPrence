@@ -34,7 +34,7 @@ public class RoleController {
      */
     @Operation(summary = "Lister les rôles", description = "Récupère tous les rôles définis dans le système")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_SUPERVISOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<RoleResponse>>> findAll() {
         List<RoleResponse> roles = roleService.findAll();
         return ResponseEntity.ok(ApiResponse.success(roles, "Rôles récupérés"));
