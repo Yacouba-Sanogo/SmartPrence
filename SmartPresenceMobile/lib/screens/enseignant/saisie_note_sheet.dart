@@ -193,7 +193,8 @@ class _FormulaireNoteState extends State<_FormulaireNote> {
                   style: Typo.titreEcran.copyWith(fontSize: 19)),
               const SizedBox(height: Espaces.xs),
               Text(
-                'La note sera visible par l’étudiant dans son bulletin.',
+                'Elle reste en brouillon jusqu’à sa transmission, puis sa validation par '
+                'l’administration : l’étudiant ne la voit qu’ensuite.',
                 style: Typo.corpsAttenue,
               ),
               const SizedBox(height: Espaces.xl),

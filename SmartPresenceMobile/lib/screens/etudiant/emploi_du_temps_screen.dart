@@ -44,6 +44,9 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
   /// la suivante : vider l'écran à chaque flèche le ferait clignoter.
   bool _vierge = true;
 
+  /// Jour retenu dans la bande de la semaine ; `null` montre toute la semaine.
+  DateTime? _jourRetenu;
+
   @override
   void initState() {
     super.initState();
@@ -80,7 +83,10 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
   }
 
   void _decaler(int semaines) {
-    setState(() => _lundi = _lundi.add(Duration(days: 7 * semaines)));
+    setState(() {
+      _lundi = _lundi.add(Duration(days: 7 * semaines));
+      _jourRetenu = null;
+    });
     _charger();
   }
 
@@ -127,6 +133,8 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
           ),
           const SizedBox(height: Espaces.lg),
           _navigationSemaine(semaineCourante),
+          const SizedBox(height: Espaces.lg),
+          _bandeSemaine(),
         ],
       ),
     );
@@ -168,6 +176,74 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  /// Bande des sept jours : numéro du jour et un point par cours prévu.
+  ///
+  /// Toucher un jour ne montre que lui ; le toucher de nouveau rend la semaine.
+  Widget _bandeSemaine() {
+    const noms = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
+
+    return Row(
+      children: [
+        for (var i = 0; i < 7; i++)
+          Expanded(child: _jourDeBande(noms[i], _lundi.add(Duration(days: i)))),
+      ],
+    );
+  }
+
+  Widget _jourDeBande(String nom, DateTime jour) {
+    final cours = _seances.where((s) => Dates.memeJour(s.debut, jour)).length;
+    final retenu = _jourRetenu != null && Dates.memeJour(_jourRetenu!, jour);
+    final aujourdhui = Dates.estAujourdhui(jour);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _jourRetenu = retenu ? null : jour),
+      child: Column(
+        children: [
+          Text(nom,
+              style: Typo.legende.copyWith(
+                  fontSize: 9.5,
+                  letterSpacing: 0.6,
+                  color: Colors.white.withValues(alpha: 0.6))),
+          const SizedBox(height: 6),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: retenu ? Colors.white : Colors.transparent,
+              border: aujourdhui && !retenu
+                  ? Border.all(color: Colors.white.withValues(alpha: 0.7))
+                  : null,
+            ),
+            child: Text('${jour.day}',
+                style: Typo.mono(13,
+                    graisse: FontWeight.w700,
+                    couleur: retenu ? Couleurs.royal700 : Colors.white)),
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var k = 0; k < cours.clamp(0, 3); k++)
+                Container(
+                  width: 4,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.75)),
+                ),
+              if (cours == 0) const SizedBox(height: 4),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -237,6 +313,7 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
     // continue où le passage de mardi à mercredi ne se voit plus.
     final jours = <DateTime, List<Seance>>{};
     for (final seance in _seances) {
+      if (_jourRetenu != null && !Dates.memeJour(seance.debut, _jourRetenu!)) continue;
       final jour = DateTime(seance.debut.year, seance.debut.month, seance.debut.day);
       jours.putIfAbsent(jour, () => []).add(seance);
     }
@@ -256,118 +333,91 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
     );
   }
 
+  /// Une journée : son nom à la verticale, puis un tableau Séance · Salle · Matière · Horaire.
   Widget _journee(DateTime jour, List<Seance> seances) {
     final aujourdhui = Dates.estAujourdhui(jour);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(
-              left: Espaces.sm, top: Espaces.sm, bottom: Espaces.sm),
-          child: Row(
-            children: [
-              Text(
-                Dates.jourEtDate(jour),
-                style: Typo.suretitre.copyWith(
-                    color: aujourdhui ? Couleurs.indigo700 : Couleurs.encreAttenuee),
-              ),
-              if (aujourdhui) ...[
-                const SizedBox(width: Espaces.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Couleurs.indigo50,
-                    borderRadius: BorderRadius.circular(Rayons.pilule),
-                  ),
-                  child: Text("Aujourd'hui",
-                      style: Typo.legende.copyWith(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: Couleurs.indigo600)),
-                ),
-              ],
-            ],
-          ),
-        ),
-        ...seances.map(_carteSeance),
-        const SizedBox(height: Espaces.sm),
-      ],
-    );
-  }
-
-  Widget _carteSeance(Seance seance) {
-    final enCours = seance.seDerouleMaintenant;
+    final nom = Dates.jours[jour.weekday - 1];
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: Espaces.sm),
-      child: Carte(
-        rayon: Rayons.tuile + 2,
-        padding: const EdgeInsets.symmetric(
-            horizontal: Espaces.md + 1, vertical: Espaces.md),
-        enfant: Row(
-          children: [
-            // Colonne horaire : l'heure est la première chose qu'on cherche.
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(Dates.heure(seance.debut),
-                    style: Typo.mono(14,
-                        graisse: FontWeight.w700,
-                        couleur: enCours ? Couleurs.indigo600 : Couleurs.encre)),
-                const SizedBox(height: 2),
-                Text(Dates.heure(seance.fin),
-                    style: Typo.mono(11, couleur: Couleurs.encrePale)),
-              ],
-            ),
-            const SizedBox(width: Espaces.md),
-            Container(
-              width: 3,
-              height: 38,
-              decoration: BoxDecoration(
-                color: enCours ? Couleurs.indigo500 : seance.statut.teinte,
-                borderRadius: BorderRadius.circular(2),
+      padding: const EdgeInsets.only(bottom: Espaces.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 22,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                nom.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: Typo.suretitre.copyWith(
+                    letterSpacing: 1.4,
+                    color: aujourdhui ? Couleurs.royal600 : Couleurs.encreDiscrete),
               ),
             ),
-            const SizedBox(width: Espaces.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          const SizedBox(width: Espaces.xs),
+          Expanded(
+            child: Carte(
+              rayon: Rayons.carte,
+              ombre: Couleurs.ombreFlottante,
+              padding: const EdgeInsets.fromLTRB(
+                  Espaces.lg, Espaces.md, Espaces.lg, Espaces.sm),
+              enfant: Column(
                 children: [
-                  Text(seance.matiere,
-                      style: Typo.libelle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 3),
-                  Text(
-                    [
-                      if (seance.salle != null) seance.salle!,
-                      seance.creneau,
-                    ].join(' · '),
-                    style: Typo.legendePale,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  _ligneTableau(
+                    ['Séance', 'Salle', 'Matière', 'Horaire'],
+                    entete: true,
                   ),
+                  Divider(height: Espaces.lg, color: Couleurs.traitLeger),
+                  for (var i = 0; i < seances.length; i++)
+                    _ligneSeance(i + 1, seances[i]),
                 ],
               ),
             ),
-            if (enCours)
-              Pastille(
-                compact: true,
-                texte: 'En cours',
-                teinte: Couleurs.indigo600,
-                fond: Couleurs.indigo50,
-              )
-            else if (seance.statut == StatutSeance.annulee)
-              Pastille(
-                compact: true,
-                texte: 'Annulée',
-                teinte: Couleurs.danger,
-                fond: Couleurs.dangerFond,
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _ligneSeance(int rang, Seance s) {
+    final annulee = s.statut == StatutSeance.annulee;
+    final enCours = s.seDerouleMaintenant;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: _ligneTableau(
+        [
+          rang == 1 ? '1re' : '${rang}e',
+          s.salle ?? '—',
+          s.matiere,
+          '${Dates.heure(s.debut)}–${Dates.heure(s.fin)}',
+        ],
+        barre: annulee,
+        accent: enCours,
+      ),
+    );
+  }
+
+  Widget _ligneTableau(List<String> c,
+      {bool entete = false, bool barre = false, bool accent = false}) {
+    final style = entete
+        ? Typo.suretitre.copyWith(fontSize: 10)
+        : Typo.libelle.copyWith(
+            fontSize: 12.5,
+            color: accent ? Couleurs.royal600 : Couleurs.royal800,
+            fontWeight: accent ? FontWeight.w700 : FontWeight.w600,
+            decoration: barre ? TextDecoration.lineThrough : null);
+
+    Widget cellule(String t, int flex) => Expanded(
+          flex: flex,
+          child: Text(t, style: style, maxLines: 2, overflow: TextOverflow.ellipsis),
+        );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [cellule(c[0], 2), cellule(c[1], 3), cellule(c[2], 5), cellule(c[3], 5)],
     );
   }
 }

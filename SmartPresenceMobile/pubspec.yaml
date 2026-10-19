@@ -15,6 +15,9 @@ dependencies:
   # IBM Plex Sans / Mono : même identité typographique que l'administration web.
   google_fonts: ^6.2.1
   intl: ^0.19.0
+  file_picker: 8.3.7
+  path_provider: ^2.1.6
+  open_filex: ^5.0.0
 
 dev_dependencies:
   flutter_test:

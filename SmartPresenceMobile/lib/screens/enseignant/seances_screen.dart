@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../../core/api/erreurs.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/dates.dart';
+import '../../core/design/animations.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
 import '../../models/seance.dart';
 import '../../services/enseignant_service.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
+import 'annonces_screen.dart';
 import 'feuille_screen.dart';
 
 /// Journée de l'enseignant : ses séances, dans l'ordre, avec accès à chaque feuille.
@@ -30,6 +32,7 @@ class _SeancesScreenState extends State<SeancesScreen> {
   DateTime _jour = DateTime.now();
   List<Seance> _seances = const [];
   bool _chargement = true;
+  int _nonLues = 0;
   String? _erreur;
 
   @override
@@ -45,6 +48,7 @@ class _SeancesScreenState extends State<SeancesScreen> {
     });
     try {
       final seances = await _service.mesSeances(_jour);
+      _actualiserAnnonces();
       if (!mounted) return;
       setState(() {
         _seances = seances;
@@ -57,6 +61,24 @@ class _SeancesScreenState extends State<SeancesScreen> {
         _chargement = false;
       });
     }
+  }
+
+  /// Le compteur d'annonces ne doit jamais empêcher d'afficher la journée : une
+  /// erreur ici est avalée, la cloche reste simplement sans point.
+  Future<void> _actualiserAnnonces() async {
+    try {
+      final n = await _service.nombreNonLues();
+      if (mounted) setState(() => _nonLues = n);
+    } on ErreurApi {
+      // Sans conséquence pour la journée.
+    }
+  }
+
+  Future<void> _ouvrirAnnonces() async {
+    await Navigator.of(context).push<void>(
+      routeDouce<void>((_) => AnnoncesScreen(auth: widget.auth)),
+    );
+    if (mounted) _actualiserAnnonces();
   }
 
   void _allerAu(DateTime jour) {
@@ -101,6 +123,24 @@ class _SeancesScreenState extends State<SeancesScreen> {
       enfant: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(left: Espaces.sm, bottom: Espaces.xs),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Mes séances',
+                      style: Typo.suretitre.copyWith(color: Colors.white.withValues(alpha: 0.72))),
+                ),
+                ActionEntete(
+                  icone: _nonLues > 0
+                      ? Icons.notifications_active_rounded
+                      : Icons.notifications_none_rounded,
+                  pastille: _nonLues > 0,
+                  surTap: _ouvrirAnnonces,
+                ),
+              ],
+            ),
+          ),
           Row(
             children: [
               ActionEntete(
@@ -229,7 +269,10 @@ class _SeancesScreenState extends State<SeancesScreen> {
           Espaces.md + 2, Espaces.sm, Espaces.md + 2, Espaces.xxxl * 3),
       itemCount: _seances.length,
       separatorBuilder: (_, index) => const SizedBox(height: Espaces.md),
-      itemBuilder: (_, index) => _carteSeance(_seances[index]),
+      itemBuilder: (_, index) => ApparitionEnCascade(
+          key: ValueKey(_seances[index].id),
+          rang: index,
+          enfant: _carteSeance(_seances[index])),
     );
   }
 
@@ -291,6 +334,20 @@ class _SeancesScreenState extends State<SeancesScreen> {
                         teinte: Couleurs.royal600,
                         fond: Couleurs.royal50,
                       ),
+                    ] else if (seance.declaree) ...[
+                      const SizedBox(width: Espaces.sm),
+                      const Pastille(
+                        texte: 'Effectuée',
+                        teinte: Couleurs.succes,
+                        fond: Couleurs.succesFond,
+                      ),
+                    ] else if (seance.aDeclarer) ...[
+                      const SizedBox(width: Espaces.sm),
+                      const Pastille(
+                        texte: 'À déclarer',
+                        teinte: Couleurs.alerte,
+                        fond: Couleurs.alerteFond,
+                      ),
                     ],
                   ],
                 ),
@@ -315,5 +372,7 @@ class _SeancesScreenState extends State<SeancesScreen> {
         builder: (_) => FeuilleScreen(auth: widget.auth, seance: seance),
       ),
     );
+    // La séance a pu être déclarée depuis la feuille : la liste doit le refléter.
+    if (mounted) _charger();
   }
 }

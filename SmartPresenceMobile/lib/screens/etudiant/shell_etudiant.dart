@@ -7,6 +7,7 @@ import '../../widgets/navigation_flottante.dart';
 import '../profil_screen.dart';
 import 'accueil_screen.dart';
 import 'emploi_du_temps_screen.dart';
+import 'empreinte_screen.dart';
 import 'historique_screen.dart';
 import 'notes_screen.dart';
 
@@ -29,6 +30,7 @@ class OngletsEtudiant {
   static const int releves = 2;
   static const int notes = 3;
   static const int profil = 4;
+  static const int empreinte = 5;
 }
 
 class ShellEtudiant extends StatefulWidget {
@@ -56,35 +58,51 @@ class _ShellEtudiantState extends State<ShellEtudiant> {
         HistoriqueScreen(auth: widget.auth),
         NotesScreen(auth: widget.auth),
         ProfilScreen(auth: widget.auth),
+        EmpreinteScreen(auth: widget.auth),
       ]),
-      bottomNavigationBar: NavigationFlottante(
+      bottomNavigationBar: NavigationCentrale(
         indexActif: _onglet,
+        indexCentre: OngletsEtudiant.empreinte,
         surSelection: _allerA,
-        onglets: const [
-          Onglet(
-            icone: Icons.home_outlined,
-            iconeActive: Icons.home_rounded,
-            libelle: 'Accueil',
+        gauche: const [
+          (
+            OngletsEtudiant.accueil,
+            Onglet(
+              icone: Icons.home_outlined,
+              iconeActive: Icons.home_rounded,
+              libelle: 'Accueil',
+            )
           ),
-          Onglet(
-            icone: Icons.calendar_month_outlined,
-            iconeActive: Icons.calendar_month_rounded,
-            libelle: 'Cours',
+          (
+            OngletsEtudiant.emploiDuTemps,
+            Onglet(
+              icone: Icons.calendar_month_outlined,
+              iconeActive: Icons.calendar_month_rounded,
+              libelle: 'Cours',
+            )
           ),
-          Onglet(
-            icone: Icons.event_note_outlined,
-            iconeActive: Icons.event_note_rounded,
-            libelle: 'Relevés',
+        ],
+        centre: const Onglet(
+          icone: Icons.fingerprint_rounded,
+          iconeActive: Icons.fingerprint_rounded,
+          libelle: 'Empreinte',
+        ),
+        droite: const [
+          (
+            OngletsEtudiant.releves,
+            Onglet(
+              icone: Icons.event_note_outlined,
+              iconeActive: Icons.event_note_rounded,
+              libelle: 'Relevés',
+            )
           ),
-          Onglet(
-            icone: Icons.school_outlined,
-            iconeActive: Icons.school_rounded,
-            libelle: 'Notes',
-          ),
-          Onglet(
-            icone: Icons.person_outline_rounded,
-            iconeActive: Icons.person_rounded,
-            libelle: 'Profil',
+          (
+            OngletsEtudiant.profil,
+            Onglet(
+              icone: Icons.person_outline_rounded,
+              iconeActive: Icons.person_rounded,
+              libelle: 'Profil',
+            )
           ),
         ],
       ),

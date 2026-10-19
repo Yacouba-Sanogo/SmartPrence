@@ -47,6 +47,9 @@ class Seance {
     required this.fin,
     required this.statut,
     this.salle,
+    this.classeId,
+    this.matiereId,
+    this.declareeLe,
   });
 
   final String id;
@@ -56,6 +59,20 @@ class Seance {
   final DateTime fin;
   final StatutSeance statut;
   final String? salle;
+  final int? classeId;
+  final int? matiereId;
+
+  /// Instant où l'enseignant l'a déclarée effectuée.
+  final DateTime? declareeLe;
+
+  bool get declaree => declareeLe != null;
+
+  /// Commencée : seule une séance commencée se déclare ou se consigne au cahier.
+  bool get commencee => !debut.isAfter(DateTime.now());
+
+  /// Passée, non annulée, jamais déclarée : à régulariser.
+  bool get aDeclarer =>
+      !declaree && statut != StatutSeance.annulee && fin.isBefore(DateTime.now());
 
   /// `true` si l'heure courante tombe dans le créneau — sert à mettre la ligne en avant.
   bool get seDerouleMaintenant {
@@ -78,6 +95,9 @@ class Seance {
       fin: DateTime.tryParse(json['fin'] as String? ?? '')?.toLocal() ?? DateTime.now(),
       statut: statutSeanceDepuis(json['statut'] as String?),
       salle: json['salleLibelle'] as String?,
+      classeId: (json['classeId'] as num?)?.toInt(),
+      matiereId: (json['matiereId'] as num?)?.toInt(),
+      declareeLe: DateTime.tryParse(json['declareeLe'] as String? ?? '')?.toLocal(),
     );
   }
 }

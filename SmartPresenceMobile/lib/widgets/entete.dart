@@ -29,7 +29,11 @@ class EnteteDegrade extends StatelessWidget {
   Widget build(BuildContext context) {
     final hautStatut = MediaQuery.of(context).padding.top;
 
+    // Pleine largeur par construction : dans une colonne, un en-tête dont le contenu est
+    // étroit (un titre et un sous-titre) se contentait sinon de la largeur de ce texte, et
+    // le dégradé n'habillait qu'une colonne au milieu de l'écran.
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(gradient: degrade ?? Couleurs.degradeEntete),
       child: Stack(
         clipBehavior: Clip.hardEdge,

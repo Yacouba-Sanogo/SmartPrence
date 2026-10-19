@@ -4,8 +4,10 @@ import '../core/auth/auth_service.dart';
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
 import '../models/profil.dart';
+import '../widgets/choix_option.dart';
 import '../widgets/communs.dart';
 import '../widgets/entete.dart';
+import '../widgets/mot_de_passe_sheet.dart';
 
 /// Profil de l'utilisateur connecté et déconnexion.
 ///
@@ -39,8 +41,20 @@ class ProfilScreen extends StatelessWidget {
             const SizedBox(height: Espaces.sm),
             _rattachement(profil),
             const SizedBox(height: Espaces.lg),
+            if (profil?.estEtudiant == true) ChoixOption(client: auth.client),
             _noteBiometrie(),
             const SizedBox(height: Espaces.xl),
+            OutlinedButton.icon(
+              onPressed: () => _changerMotDePasse(context),
+              icon: const Icon(Icons.lock_reset_rounded, size: 19),
+              label: const Text('Changer mon mot de passe'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Couleurs.indigo600,
+                side: const BorderSide(color: Couleurs.royal200),
+                minimumSize: const Size(0, 48),
+              ),
+            ),
+            const SizedBox(height: Espaces.sm),
             OutlinedButton.icon(
               onPressed: () => _confirmerDeconnexion(context),
               icon: const Icon(Icons.logout_rounded, size: 19),
@@ -199,6 +213,18 @@ class ProfilScreen extends StatelessWidget {
 
   Widget _separateur() =>
       const Divider(height: 1, indent: Espaces.lg, endIndent: Espaces.lg);
+
+  Future<void> _changerMotDePasse(BuildContext context) async {
+    final change = await ouvrirChangementMotDePasse(context, auth.client);
+    if (change && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mot de passe modifié.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   Future<void> _confirmerDeconnexion(BuildContext context) async {
     final confirme = await showDialog<bool>(

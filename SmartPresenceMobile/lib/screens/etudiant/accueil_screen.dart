@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/erreurs.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/dates.dart';
+import '../../core/design/animations.dart';
 import '../../core/design/couleurs.dart';
 import '../../core/design/typographie.dart';
 import '../../models/presence.dart';
@@ -13,6 +14,7 @@ import '../../widgets/anneau.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
 import 'shell_etudiant.dart';
+import 'supports_screen.dart';
 
 /// Accueil de l'étudiant.
 ///
@@ -325,11 +327,13 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
         const SizedBox(width: Espaces.sm),
         Expanded(
           child: Tuile(
-            icone: Icons.shield_outlined,
-            libelle: 'Mon profil',
+            icone: Icons.folder_copy_rounded,
+            libelle: 'Supports de cours',
             teinte: Couleurs.alerte,
             fondIcone: Couleurs.alerteFond,
-            surTap: () => widget.surNaviguer?.call(OngletsEtudiant.profil),
+            surTap: () => Navigator.of(context).push<void>(
+              routeDouce<void>((_) => SupportsEtudiantScreen(auth: widget.auth)),
+            ),
           ),
         ),
       ],

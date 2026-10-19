@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/design/animations.dart';
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
 
@@ -27,7 +28,7 @@ class Carte extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final carte = Container(
       decoration: BoxDecoration(
         color: couleur ?? Couleurs.carte,
         borderRadius: BorderRadius.circular(rayon),
@@ -46,6 +47,8 @@ class Carte extends StatelessWidget {
         ),
       ),
     );
+    // Une carte cliquable s'enfonce sous le doigt ; une carte de lecture reste immobile.
+    return surTap == null ? carte : PressionDouce(enfant: carte);
   }
 }
 
