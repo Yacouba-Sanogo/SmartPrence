@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/api/erreurs.dart';
@@ -10,6 +9,7 @@ import '../../models/gestion.dart';
 import '../../models/note.dart';
 import '../../models/seance.dart';
 import '../../services/enseignant_service.dart';
+import '../../services/fichier/choix_fichier.dart';
 import '../../services/fichiers.dart';
 import '../../widgets/carte_support.dart';
 import '../../widgets/communs.dart';
@@ -271,7 +271,7 @@ class _FormulairePublicationState extends State<_FormulairePublication> {
   final _titre = TextEditingController();
   final _description = TextEditingController();
   late int? _matiereId = widget.matieres.isEmpty ? null : widget.matieres.first.id;
-  PlatformFile? _fichier;
+  FichierChoisi? _fichier;
   bool _envoi = false;
   String? _erreur;
 
@@ -284,28 +284,38 @@ class _FormulairePublicationState extends State<_FormulairePublication> {
 
   bool get _valide => _fichier != null && _matiereId != null && _titre.text.trim().isNotEmpty;
 
+  static String _taille(int o) => o < 1024 ? '$o o' : o < 1024 * 1024 ? '${(o / 1024).round()} Ko' : '${(o / 1024 / 1024).toStringAsFixed(1).replaceAll('.', ',')} Mo';
+
   Future<void> _choisir() async {
-    final r = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: _extensions, withData: true);
-    final f = r?.files.single;
-    if (f == null) return;
-    if (f.size > _taillemax) {
-      setState(() => _erreur = 'Ce fichier dépasse 10 Mo. Réduisez-le avant de le publier.');
-      return;
-    }
-    setState(() {
-      _fichier = f;
-      _erreur = null;
-      if (_titre.text.trim().isEmpty) {
-        // Le nom du fichier sans son extension : un point de départ, pas une obligation.
-        final i = f.name.lastIndexOf('.');
-        _titre.text = i > 0 ? f.name.substring(0, i) : f.name;
+    try {
+      final choisi = await choisirFichier(_extensions);
+      if (choisi == null) return;
+      if (choisi.octets.length > _taillemax) {
+        if (mounted) setState(() => _erreur = 'Ce fichier dépasse 10 Mo. Réduisez-le avant de le publier.');
+        return;
       }
-    });
+      if (!mounted) return;
+      setState(() {
+        _fichier = choisi;
+        _erreur = null;
+        if (_titre.text.trim().isEmpty) {
+          // Le nom du fichier sans son extension : un point de départ, pas une obligation.
+          final i = choisi.nom.lastIndexOf('.');
+          _titre.text = i > 0 ? choisi.nom.substring(0, i) : choisi.nom;
+        }
+      });
+    } catch (e) {
+      // Un sélecteur qui échoue (autorisation refusée, plateforme sans sélecteur) ne doit pas
+      // laisser le bouton muet : on dit quoi faire.
+      if (mounted) {
+        setState(() => _erreur = 'Impossible d’ouvrir le sélecteur de fichiers sur cet appareil.');
+      }
+    }
   }
 
   Future<void> _envoyer() async {
     final f = _fichier;
-    if (!_valide || f == null || f.bytes == null || _envoi) return;
+    if (!_valide || f == null || _envoi) return;
     setState(() {
       _envoi = true;
       _erreur = null;
@@ -316,8 +326,8 @@ class _FormulairePublicationState extends State<_FormulairePublication> {
         matiereId: _matiereId!,
         titre: _titre.text,
         description: _description.text,
-        nomFichier: f.name,
-        octets: f.bytes!,
+        nomFichier: f.nom,
+        octets: f.octets,
       );
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -357,13 +367,13 @@ class _FormulairePublicationState extends State<_FormulairePublication> {
                 Icon(f == null ? Icons.cloud_upload_outlined : Icons.check_circle_rounded,
                     size: 30, color: f == null ? Couleurs.indigo600 : Couleurs.succesVif),
                 const SizedBox(height: Espaces.sm),
-                Text(f == null ? 'Choisir un fichier' : f.name,
+                Text(f == null ? 'Choisir un fichier' : f.nom,
                     style: Typo.libelle.copyWith(fontSize: 13.5),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
                 if (f != null)
-                  Text('${(f.size / 1024).round()} Ko · toucher pour changer', style: Typo.legendePale),
+                  Text('${_taille(f.octets.length)} · toucher pour changer', style: Typo.legendePale),
               ],
             ),
           ),
@@ -409,3 +419,4 @@ class _FormulairePublicationState extends State<_FormulairePublication> {
     );
   }
 }
+
