@@ -43,6 +43,17 @@ public class AuthenticationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Enregistrement réussi"));
     }
 
+    @Operation(summary = "Changer mon mot de passe",
+            description = "Exige le mot de passe actuel. Ouvert à tout utilisateur connecté.")
+    @PatchMapping("/mot-de-passe")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> changerMotDePasse(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.smartpresence.security.CustomUserDetails utilisateur,
+            @Valid @RequestBody com.smartpresence.dto.request.ChangementMotDePasseRequest requete) {
+        authenticationService.changerMotDePasse(utilisateur.getId(), requete.motDePasseActuel(), requete.nouveauMotDePasse());
+        return ResponseEntity.ok(ApiResponse.success("Mot de passe modifié"));
+    }
+
     @Operation(summary = "Rafraîchir le token", description = "Émet un nouveau JWT si le refresh token est valide")
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<AuthResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {

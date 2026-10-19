@@ -44,8 +44,32 @@ public class NotificationController {
     @Operation(summary = "Marquer une notification comme lue")
     @PatchMapping("/{id}/lue")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Void>> marquerCommeLue(@PathVariable UUID id) {
-        notificationService.marquerCommeLue(id);
+    public ResponseEntity<ApiResponse<Void>> marquerCommeLue(Authentication authentication, @PathVariable UUID id) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        notificationService.marquerCommeLue(userDetails.getId(), id);
         return ResponseEntity.ok(ApiResponse.success("Notification marquée comme lue"));
+    }
+
+    @Operation(summary = "Marquer toutes mes notifications comme lues")
+    @PatchMapping("/lues")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Integer>> toutMarquerCommeLu(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(ApiResponse.success(
+                notificationService.toutMarquerCommeLu(userDetails.getId()), "Notifications marquées comme lues"));
+    }
+
+    @Operation(summary = "Diffuser une annonce aux enseignants",
+            description = "Destinataires : un enseignant nommé, sinon les enseignants d'une classe, "
+                    + "sinon tous les enseignants actifs. Réservé à l'administration.")
+    @PostMapping("/annonces")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<Integer>> diffuser(
+            @jakarta.validation.Valid @RequestBody com.smartpresence.dto.request.AnnonceRequest requete) {
+        int destinataires = notificationService.diffuserAuxEnseignants(
+                requete.type() == null ? com.smartpresence.constants.TypeNotification.ANNONCE : requete.type(),
+                requete.titre().trim(), requete.message().trim(), requete.classeId(), requete.personnelId());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(ApiResponse.success(
+                destinataires, destinataires + " enseignant(s) notifié(s)"));
     }
 }

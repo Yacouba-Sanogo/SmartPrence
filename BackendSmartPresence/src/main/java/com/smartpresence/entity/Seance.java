@@ -23,5 +23,7 @@ public class Seance extends BaseAuditableEntity {
     @Column(nullable = false) private Instant fin;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private StatutSeance statut = StatutSeance.PLANIFIEE;
     @Column(length = 500) private String note;
+    /** Instant où l'enseignant a déclaré la séance effectuée ; {@code null} tant qu'il ne l'a pas fait. */
+    @Column(name = "declaree_le") private Instant declareeLe;
     @PrePersist void generateId() { if (id == null) id = UUID.randomUUID(); }
 }

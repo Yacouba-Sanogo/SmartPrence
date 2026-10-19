@@ -148,4 +148,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return utilisateurMapper.toResponse(saved);
     }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void changerMotDePasse(java.util.UUID utilisateurId, String motDePasseActuel, String nouveauMotDePasse) {
+        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new com.smartpresence.exception.ResourceNotFoundException(
+                        "Utilisateur", "id", utilisateurId));
+        if (!passwordEncoder.matches(motDePasseActuel, utilisateur.getMotDePasse())) {
+            throw new com.smartpresence.exception.BusinessException(
+                    "Le mot de passe actuel est incorrect", org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
+        if (passwordEncoder.matches(nouveauMotDePasse, utilisateur.getMotDePasse())) {
+            throw new com.smartpresence.exception.BusinessException(
+                    "Le nouveau mot de passe doit différer de l'actuel");
+        }
+        utilisateur.setMotDePasse(passwordEncoder.encode(nouveauMotDePasse));
+        utilisateurRepository.save(utilisateur);
+        log.info("Mot de passe changé — utilisateur={}", utilisateur.getEmail());
+    }
 }

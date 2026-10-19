@@ -43,7 +43,7 @@ public class UniteEnseignementController {
                     + "liste de ses ECUE et le total de leurs crédits, pour vérifier "
                     + "d'un coup d'œil que la maquette est complète.")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR', 'ENSEIGNANT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR')")
     public ResponseEntity<ApiResponse<List<UniteEnseignementResponse>>> findAll(
             @RequestParam(required = false) Long promotionId,
             @RequestParam(required = false) PeriodeScolaire semestre) {
@@ -53,7 +53,7 @@ public class UniteEnseignementController {
 
     @Operation(summary = "Trouver une UE par identifiant")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR', 'ENSEIGNANT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR')")
     public ResponseEntity<ApiResponse<UniteEnseignementResponse>> findById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(uniteService.findById(id)));
     }

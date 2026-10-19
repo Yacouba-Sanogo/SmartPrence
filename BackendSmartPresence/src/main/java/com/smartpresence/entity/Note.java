@@ -1,6 +1,7 @@
 package com.smartpresence.entity;
 
 import com.smartpresence.constants.PeriodeScolaire;
+import com.smartpresence.constants.StatutNote;
 import com.smartpresence.constants.TableNames;
 import com.smartpresence.constants.TypeEvaluation;
 import jakarta.persistence.Column;
@@ -57,7 +58,7 @@ import java.util.UUID;
 )
 @Getter
 @Setter
-@ToString(exclude = {"etudiant", "matiere", "enseignant"})
+@ToString(exclude = {"etudiant", "matiere", "enseignant", "evaluation"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Note extends BaseAuditableEntity {
 
@@ -113,6 +114,27 @@ public class Note extends BaseAuditableEntity {
     /** Commentaire de l'enseignant, visible par l'étudiant. */
     @Column(name = "appreciation", length = 500)
     private String appreciation;
+
+    /**
+     * Étape de validation. Seules les notes {@code VALIDEE} entrent dans un bulletin :
+     * l'enseignant saisit et corrige librement, l'administration publie.
+     *
+     * <p>Le défaut SQL protège les lignes déjà en base lors de l'ajout de la colonne :
+     * ce sont des notes historiques, déjà visibles, qu'il ne faut pas masquer.</p>
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statut", nullable = false, length = 20,
+            columnDefinition = "varchar(20) default 'VALIDEE'")
+    private StatutNote statut = StatutNote.BROUILLON;
+
+    /** Motif du renvoi en brouillon par l'administration, affiché à l'enseignant. */
+    @Column(name = "motif_rejet", length = 500)
+    private String motifRejet;
+
+    /** Évaluation d'origine, quand la note vient d'une saisie par évaluation. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "evaluation_id", foreignKey = @ForeignKey(name = "fk_notes_evaluation"))
+    private Evaluation evaluation;
 
     @PrePersist
     private void genererIdentifiant() {

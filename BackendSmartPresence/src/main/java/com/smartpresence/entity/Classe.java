@@ -59,7 +59,7 @@ import java.util.Set;
 )
 @Getter
 @Setter
-@ToString(exclude = {"etudiants", "enseignants", "promotion"})
+@ToString(exclude = {"etudiants", "enseignants", "promotion", "classePrecedente"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Classe extends BaseAuditableEntity {
 
@@ -96,6 +96,34 @@ public class Classe extends BaseAuditableEntity {
     @JoinColumn(name = "promotion_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_classes_promotion"))
     private Promotion promotion;
+
+    /**
+     * Filière de rattachement, facultative : les classes antérieures au référentiel
+     * des filières n'en ont pas, et rien ne doit les y obliger.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "filiere_id",
+            foreignKey = @ForeignKey(name = "fk_classes_filiere"))
+    private Filiere filiere;
+
+    /**
+     * Option (spécialité) de la classe, à partir de la 3e année : « Génie Civil » se
+     * divise alors en une classe BTP et une classe Hydraulique.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "option_id",
+            foreignKey = @ForeignKey(name = "fk_classes_option"))
+    private OptionFiliere option;
+
+    /**
+     * Classe d'où viennent les étudiants à l'issue de l'année : c'est ce lien qui
+     * fixe la classe supérieure. Plusieurs classes peuvent partager la même classe
+     * précédente (une par option), l'étudiant rejoignant celle de son option.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classe_precedente_id",
+            foreignKey = @ForeignKey(name = "fk_classes_precedente"))
+    private Classe classePrecedente;
 
     /**
      * Étudiants appartenant à la classe.

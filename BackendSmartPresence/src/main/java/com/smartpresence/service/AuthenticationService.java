@@ -36,4 +36,12 @@ public interface AuthenticationService {
      * @return l'utilisateur créé
      */
     UserResponse register(UserRegistrationRequest request);
+
+    /**
+     * Change le mot de passe de l'utilisateur connecté.
+     *
+     * <p>L'ancien est exigé : un jeton volé sur un téléphone déverrouillé ne doit pas
+     * suffire à s'approprier le compte.</p>
+     */
+    void changerMotDePasse(java.util.UUID utilisateurId, String motDePasseActuel, String nouveauMotDePasse);
 }

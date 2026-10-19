@@ -204,10 +204,11 @@ class ReleveLmdTest extends IntegrationTestBase {
     // Décor : deux UE, quatre ECUE, trente crédits
     // ------------------------------------------------------------------
 
-    private record Decor(long ue1, long ue2, long ecueA, long ecueB, long ecueC, long ecueD,
+    private record Decor(long classeId, long ue1, long ue2, long ecueA, long ecueB, long ecueC, long ecueD,
                          String etudiantId, String jetonEnseignant, String jetonEtudiant) {}
 
     private JsonNode releve(Decor d) throws Exception {
+        publierLesNotes(d.jetonEnseignant, d.classeId);
         return donnees(mockMvc.perform(avecJeton(get("/moi/releve"), d.jetonEtudiant))
                 .andExpect(status().isOk())
                 .andReturn());
@@ -273,7 +274,7 @@ class ReleveLmdTest extends IntegrationTestBase {
                  "classeId":%d,"actif":true}
                 """.formatted(cle, classeId)).get("id").asText();
 
-        return new Decor(ue1, ue2, ecueA, ecueB, ecueC, ecueD, etudiantId,
+        return new Decor(classeId, ue1, ue2, ecueA, ecueB, ecueC, ecueD, etudiantId,
                 jetonDe("/personnels/" + enseignantId + "/compte"),
                 jetonDe("/etudiants/" + etudiantId + "/compte"));
     }

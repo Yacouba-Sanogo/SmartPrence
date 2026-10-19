@@ -21,6 +21,16 @@ import com.smartpresence.dto.response.SeanceResponse;
 import com.smartpresence.dto.response.SignalementResponse;
 import com.smartpresence.dto.response.StatistiquesEtudiantResponse;
 import com.smartpresence.security.CustomUserDetails;
+import com.smartpresence.dto.request.ParcoursRequests;
+import com.smartpresence.dto.response.ChoixOptionResponse;
+import com.smartpresence.service.ParcoursService;
+import com.smartpresence.service.EnseignementService;
+import com.smartpresence.service.EvaluationService;
+import com.smartpresence.dto.request.EnseignementRequests;
+import com.smartpresence.dto.response.EnseignementResponses;
+import com.smartpresence.dto.request.GestionRequests;
+import com.smartpresence.dto.response.GestionResponses;
+import com.smartpresence.dto.response.JourneePersonnelResponse;
 import com.smartpresence.service.EnrolementService;
 import com.smartpresence.service.ReleveService;
 import com.smartpresence.service.ProfilService;
@@ -77,6 +87,34 @@ public class MoiController {
     private final AcademicService academicService;
     private final EnrolementService enrolementService;
     private final ReleveService releveService;
+    private final ParcoursService parcoursService;
+    private final EnseignementService enseignementService;
+    private final EvaluationService evaluationService;
+    private final com.smartpresence.service.CongeService congeService;
+    private final com.smartpresence.service.ReclamationService reclamationService;
+    private final com.smartpresence.service.SupportCoursService supportService;
+
+    @GetMapping("/option")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Mon option et celles que ma filière propose")
+    public ResponseEntity<ApiResponse<ChoixOptionResponse>> monOption(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(parcoursService.options(
+                profilService.etudiantDuCompte(utilisateur.getId()).getId())));
+    }
+
+    @PutMapping("/option")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Choisir mon option",
+            description = "Elle décide de la classe que je rejoindrai en année supérieure quand "
+                    + "ma filière se divise (ex. Génie Civil : BTP ou Hydraulique).")
+    public ResponseEntity<ApiResponse<ChoixOptionResponse>> choisirMonOption(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @Valid @RequestBody ParcoursRequests.ChoixOption requete) {
+        return ResponseEntity.ok(ApiResponse.success(parcoursService.choisirOption(
+                profilService.etudiantDuCompte(utilisateur.getId()).getId(), requete.optionId()),
+                "Option enregistrée"));
+    }
 
     @GetMapping("/profil")
     @PreAuthorize("isAuthenticated()")
@@ -342,6 +380,378 @@ public class MoiController {
             @PathVariable UUID noteId) {
         noteService.supprimer(utilisateur.getId(), noteId);
         return ResponseEntity.ok(ApiResponse.success("Note supprimée"));
+    }
+
+    @PostMapping("/notes/transmettre")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Transmettre des notes à l'administration",
+            description = "Les notes passent de brouillon à transmise : elles ne sont plus "
+                    + "modifiables et attendent la décision de l'administration, qui seule "
+                    + "les publie dans les bulletins.")
+    public ResponseEntity<ApiResponse<List<NoteResponse>>> transmettreNotes(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @Valid @RequestBody EnseignementRequests.LotNotes lot) {
+        return ResponseEntity.ok(ApiResponse.success(
+                noteService.transmettre(utilisateur.getId(), lot.noteIds()),
+                "Notes transmises à l'administration"));
+    }
+
+    // ------------------------------------------------------------------
+    // Présence de l'enseignant et séances effectuées
+    // ------------------------------------------------------------------
+
+    @GetMapping("/pointages")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Mes pointages",
+            description = "Mes arrivées et départs relevés par le lecteur. Sans paramètre, "
+                    + "les trente derniers jours.")
+    public ResponseEntity<ApiResponse<List<JourneePersonnelResponse>>> mesPointages(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
+        LocalDate dernier = fin == null ? LocalDate.now() : fin;
+        LocalDate premier = debut == null ? dernier.minusDays(29) : debut;
+        if (dernier.isBefore(premier)) {
+            throw new BusinessException("La date de fin précède la date de début");
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.mesPointages(utilisateur.getId(), premier, dernier)));
+    }
+
+    @PostMapping("/seances/{seanceId}/declaration")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Déclarer une séance effectuée",
+            description = "Refusée si la séance est annulée ou pas encore commencée. "
+                    + "Idempotente : la rappeler ne change pas la date de déclaration.")
+    public ResponseEntity<ApiResponse<SeanceResponse>> declarerSeance(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID seanceId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.declarerSeance(utilisateur.getId(), seanceId),
+                "Séance déclarée effectuée"));
+    }
+
+    @GetMapping("/bilan")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Mon bilan d'enseignement",
+            description = "Séances prévues, effectuées, annulées et restant à déclarer, heures "
+                    + "enseignées par matière, et ponctualité. Sans paramètre, le mois en cours.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.Bilan>> bilan(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
+        LocalDate premier = debut == null ? LocalDate.now().withDayOfMonth(1) : debut;
+        LocalDate dernier = fin == null ? LocalDate.now() : fin;
+        if (dernier.isBefore(premier)) {
+            throw new BusinessException("La date de fin précède la date de début");
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.bilan(utilisateur.getId(), premier, dernier)));
+    }
+
+    // ------------------------------------------------------------------
+    // Cahier de textes et syllabus
+    // ------------------------------------------------------------------
+
+    @GetMapping("/seances/{seanceId}/cahier")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Page du cahier de textes d'une séance",
+            description = "Vide (data nul) tant que l'enseignant n'a rien écrit.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.PageCahier>> cahierDeSeance(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID seanceId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.cahierDeSeance(utilisateur.getId(), seanceId)));
+    }
+
+    @PutMapping("/seances/{seanceId}/cahier")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Écrire ou corriger le cahier de textes d'une séance",
+            description = "Peut lier la page à un chapitre et le marquer terminé.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.PageCahier>> ecrireCahier(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID seanceId,
+            @Valid @RequestBody EnseignementRequests.Cahier requete) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.ecrireCahier(utilisateur.getId(), seanceId, requete),
+                "Cahier de textes enregistré"));
+    }
+
+    @GetMapping("/classes/{classeId}/cahier")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Cahier de textes d'une de mes classes")
+    public ResponseEntity<ApiResponse<List<EnseignementResponses.PageCahier>>> cahierDeClasse(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable Long classeId,
+            @RequestParam(required = false) Long matiereId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.cahierDeClasse(utilisateur.getId(), classeId, matiereId)));
+    }
+
+    @GetMapping("/classes/{classeId}/chapitres")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Mon syllabus dans une classe",
+            description = "Chapitres par matière, avec l'avancement.")
+    public ResponseEntity<ApiResponse<List<EnseignementResponses.Syllabus>>> syllabus(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable Long classeId,
+            @RequestParam(required = false) Long matiereId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.syllabus(utilisateur.getId(), classeId, matiereId)));
+    }
+
+    @PostMapping("/chapitres")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Ajouter un chapitre à mon programme")
+    public ResponseEntity<ApiResponse<EnseignementResponses.Chapitre>> ajouterChapitre(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @Valid @RequestBody EnseignementRequests.NouveauChapitre requete) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                enseignementService.ajouterChapitre(utilisateur.getId(), requete), "Chapitre ajouté"));
+    }
+
+    @PutMapping("/chapitres/{chapitreId}")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Modifier un chapitre, ou le marquer terminé")
+    public ResponseEntity<ApiResponse<EnseignementResponses.Chapitre>> modifierChapitre(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID chapitreId,
+            @Valid @RequestBody EnseignementRequests.ModificationChapitre requete) {
+        return ResponseEntity.ok(ApiResponse.success(
+                enseignementService.modifierChapitre(utilisateur.getId(), chapitreId, requete)));
+    }
+
+    @DeleteMapping("/chapitres/{chapitreId}")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Supprimer un chapitre")
+    public ResponseEntity<ApiResponse<Void>> supprimerChapitre(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID chapitreId) {
+        enseignementService.supprimerChapitre(utilisateur.getId(), chapitreId);
+        return ResponseEntity.ok(ApiResponse.success("Chapitre supprimé"));
+    }
+
+    // ------------------------------------------------------------------
+    // Évaluations
+    // ------------------------------------------------------------------
+
+    @GetMapping("/classes/{classeId}/evaluations")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Mes évaluations dans une classe")
+    public ResponseEntity<ApiResponse<List<EnseignementResponses.Evaluation>>> evaluations(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable Long classeId,
+            @RequestParam(required = false) Long matiereId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                evaluationService.evaluationsDeClasse(utilisateur.getId(), classeId, matiereId)));
+    }
+
+    @PostMapping("/evaluations")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Planifier une évaluation",
+            description = "Devoir, interrogation, examen… avec son barème, son coefficient et son sujet.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.Evaluation>> planifier(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @Valid @RequestBody EnseignementRequests.Evaluation requete) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                evaluationService.planifier(utilisateur.getId(), requete), "Évaluation planifiée"));
+    }
+
+    @PutMapping("/evaluations/{evaluationId}")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Modifier une évaluation",
+            description = "Le barème ne change plus une fois des notes saisies.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.Evaluation>> modifierEvaluation(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID evaluationId,
+            @Valid @RequestBody EnseignementRequests.Evaluation requete) {
+        return ResponseEntity.ok(ApiResponse.success(
+                evaluationService.modifier(utilisateur.getId(), evaluationId, requete)));
+    }
+
+    @DeleteMapping("/evaluations/{evaluationId}")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Supprimer une évaluation sans notes")
+    public ResponseEntity<ApiResponse<Void>> supprimerEvaluation(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID evaluationId) {
+        evaluationService.supprimer(utilisateur.getId(), evaluationId);
+        return ResponseEntity.ok(ApiResponse.success("Évaluation supprimée"));
+    }
+
+    @GetMapping("/evaluations/{evaluationId}/resultats")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Résultats d'une évaluation",
+            description = "Toute la classe : note sur le barème, état dans le circuit de "
+                    + "validation, ou absence.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.ResultatsEvaluation>> resultats(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID evaluationId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                evaluationService.resultats(utilisateur.getId(), evaluationId)));
+    }
+
+    @PutMapping("/evaluations/{evaluationId}/resultats")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Saisir les résultats d'une évaluation",
+            description = "Notes sur le barème de l'épreuve, converties sur 20 par le serveur, "
+                    + "ou absences. Refusé pour une note déjà transmise.")
+    public ResponseEntity<ApiResponse<EnseignementResponses.ResultatsEvaluation>> saisirResultats(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID evaluationId,
+            @Valid @RequestBody EnseignementRequests.Resultats requete) {
+        return ResponseEntity.ok(ApiResponse.success(
+                evaluationService.enregistrerResultats(utilisateur.getId(), evaluationId, requete),
+                "Résultats enregistrés"));
+    }
+
+    @PostMapping("/evaluations/{evaluationId}/transmission")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Transmettre les notes d'une évaluation à l'administration")
+    public ResponseEntity<ApiResponse<List<NoteResponse>>> transmettreEvaluation(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @PathVariable UUID evaluationId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                evaluationService.transmettre(utilisateur.getId(), evaluationId),
+                "Notes transmises à l'administration"));
+    }
+
+    // ------------------------------------------------------------------
+    // Demandes de congé
+    // ------------------------------------------------------------------
+
+    @GetMapping("/conges")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Mes demandes de congé et d'absence")
+    public ResponseEntity<ApiResponse<List<GestionResponses.Conge>>> mesConges(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(congeService.mesDemandes(utilisateur.getId())));
+    }
+
+    @PostMapping("/conges")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Demander un congé ou déclarer une absence",
+            description = "Refusée si elle recouvre une demande en attente ou acceptée. "
+                    + "La réponse indique combien de séances sont touchées.")
+    public ResponseEntity<ApiResponse<GestionResponses.Conge>> demanderConge(
+            @AuthenticationPrincipal CustomUserDetails utilisateur,
+            @Valid @RequestBody GestionRequests.Conge requete) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                congeService.demander(utilisateur.getId(), requete), "Demande transmise à l'administration"));
+    }
+
+    @PostMapping("/conges/{demandeId}/annulation")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Retirer une demande en attente")
+    public ResponseEntity<ApiResponse<GestionResponses.Conge>> annulerConge(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable UUID demandeId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                congeService.annuler(utilisateur.getId(), demandeId), "Demande retirée"));
+    }
+
+    // ------------------------------------------------------------------
+    // Réclamations sur les notes
+    // ------------------------------------------------------------------
+
+    @PostMapping("/notes/{noteId}/reclamation")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Contester une de mes notes",
+            description = "Réservée aux notes publiées de l'étudiant connecté. Une seule "
+                    + "contestation à la fois par note.")
+    public ResponseEntity<ApiResponse<GestionResponses.Reclamation>> contester(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable UUID noteId,
+            @Valid @RequestBody GestionRequests.Contestation requete) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                reclamationService.contester(utilisateur.getId(), noteId, requete),
+                "Contestation transmise à l'enseignant"));
+    }
+
+    @GetMapping("/reclamations")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Mes contestations et leur suite")
+    public ResponseEntity<ApiResponse<List<GestionResponses.Reclamation>>> mesContestations(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(reclamationService.mesContestations(utilisateur.getId())));
+    }
+
+    @GetMapping("/reclamations/recues")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Les contestations adressées à l'enseignant",
+            description = "Les ouvertes d'abord, puis les plus récentes.")
+    public ResponseEntity<ApiResponse<List<GestionResponses.Reclamation>>> reclamationsRecues(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(reclamationService.recues(utilisateur.getId())));
+    }
+
+    @PostMapping("/reclamations/{reclamationId}/reponse")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Répondre à une contestation",
+            description = "L'acceptation peut corriger la note ; l'ancienne valeur est conservée.")
+    public ResponseEntity<ApiResponse<GestionResponses.Reclamation>> repondreReclamation(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable UUID reclamationId,
+            @Valid @RequestBody GestionRequests.ReponseReclamation reponse) {
+        return ResponseEntity.ok(ApiResponse.success(
+                reclamationService.repondre(utilisateur.getId(), reclamationId, reponse), "Réponse envoyée"));
+    }
+
+    // ------------------------------------------------------------------
+    // Supports de cours
+    // ------------------------------------------------------------------
+
+    @PostMapping(value = "/classes/{classeId}/supports", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Publier un support de cours",
+            description = "PDF, présentation, document, tableur ou archive jusqu'à 10 Mo. Les "
+                    + "étudiants de la classe sont prévenus.")
+    public ResponseEntity<ApiResponse<GestionResponses.Support>> publierSupport(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable Long classeId,
+            @RequestParam Long matiereId, @RequestParam String titre,
+            @RequestParam(required = false) String description,
+            @RequestParam("fichier") org.springframework.web.multipart.MultipartFile fichier) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                supportService.publier(utilisateur.getId(), classeId, matiereId, titre, description, fichier),
+                "Support publié"));
+    }
+
+    @GetMapping("/classes/{classeId}/supports")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Les supports que j'ai publiés dans une classe")
+    public ResponseEntity<ApiResponse<List<GestionResponses.Support>>> mesSupports(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable Long classeId) {
+        return ResponseEntity.ok(ApiResponse.success(supportService.mesSupports(utilisateur.getId(), classeId)));
+    }
+
+    @GetMapping("/supports")
+    @PreAuthorize("hasRole('ETUDIANT')")
+    @Operation(summary = "Les supports de cours de ma classe")
+    public ResponseEntity<ApiResponse<List<GestionResponses.Support>>> supportsDeMaClasse(
+            @AuthenticationPrincipal CustomUserDetails utilisateur) {
+        return ResponseEntity.ok(ApiResponse.success(supportService.supportsDeMaClasse(utilisateur.getId())));
+    }
+
+    @DeleteMapping("/supports/{supportId}")
+    @PreAuthorize("hasRole('ENSEIGNANT')")
+    @Operation(summary = "Retirer un de mes supports")
+    public ResponseEntity<ApiResponse<Void>> supprimerSupport(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable UUID supportId) {
+        supportService.supprimer(utilisateur.getId(), supportId);
+        return ResponseEntity.ok(ApiResponse.success("Support retiré"));
+    }
+
+    @GetMapping("/supports/{supportId}/fichier")
+    @PreAuthorize("hasAnyRole('ENSEIGNANT', 'ETUDIANT')")
+    @Operation(summary = "Télécharger un support",
+            description = "L'auteur, ou un étudiant de la classe concernée.")
+    public ResponseEntity<byte[]> telechargerSupport(
+            @AuthenticationPrincipal CustomUserDetails utilisateur, @PathVariable UUID supportId) {
+        var fichier = supportService.telecharger(utilisateur.getId(), supportId);
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(fichier.typeMime()))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        org.springframework.http.ContentDisposition.attachment()
+                                .filename(fichier.nom(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .contentLength(fichier.octets().length)
+                .body(fichier.octets());
     }
 
     @GetMapping("/signalements")

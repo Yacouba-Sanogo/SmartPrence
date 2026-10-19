@@ -32,5 +32,14 @@ public class ClasseRequest {
     @NotNull(message = "L'identifiant de la promotion est obligatoire")
     private Long promotionId;
 
+    /** Filière de rattachement ; facultative. */
+    private Long filiereId;
+
+    /** Option de la classe (3e année et au-delà) ; elle doit appartenir à la filière. */
+    private Long optionId;
+
+    /** Classe d'où viennent les étudiants : elle fixe la classe supérieure. */
+    private Long classePrecedenteId;
+
     private Set<UUID> enseignantIds;
 }

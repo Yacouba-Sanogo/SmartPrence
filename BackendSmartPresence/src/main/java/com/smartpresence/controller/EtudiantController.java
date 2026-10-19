@@ -8,7 +8,10 @@ import com.smartpresence.dto.response.BulletinResponse;
 import com.smartpresence.dto.response.ReleveSemestreResponse;
 import com.smartpresence.dto.response.CompteEtudiantResponse;
 import com.smartpresence.dto.response.EtudiantResponse;
+import com.smartpresence.dto.request.ParcoursRequests;
+import com.smartpresence.dto.response.ChoixOptionResponse;
 import com.smartpresence.service.EtudiantService;
+import com.smartpresence.service.ParcoursService;
 import com.smartpresence.service.NoteService;
 import com.smartpresence.service.ReleveService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +31,7 @@ import java.util.UUID;
 @Tag(name = "Étudiants", description = "Référentiel des étudiants sans données biométriques")
 public class EtudiantController {
     private final EtudiantService etudiantService;
+    private final ParcoursService parcoursService;
     private final NoteService noteService;
     private final ReleveService releveService;
     // ENSEIGNANT retire : sans classeId, cette route listait tous les etudiants de
@@ -41,6 +45,31 @@ public class EtudiantController {
     public ResponseEntity<ApiResponse<EtudiantResponse>> create(@Valid @RequestBody EtudiantRequest request) { return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(etudiantService.create(request))); }
     @PutMapping("/{id}") @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
     public ResponseEntity<ApiResponse<EtudiantResponse>> update(@PathVariable UUID id, @Valid @RequestBody EtudiantRequest request) { return ResponseEntity.ok(ApiResponse.success(etudiantService.update(id, request))); }
+    @Operation(summary = "Changer un étudiant de classe",
+            description = "Transfert ou correction d'affectation. L'option choisie est retirée "
+                    + "si la nouvelle classe relève d'une autre filière.")
+    @PatchMapping("/{id}/classe") @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<EtudiantResponse>> changerClasse(
+            @PathVariable UUID id, @Valid @RequestBody ParcoursRequests.ChangementClasse request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                parcoursService.changerClasse(id, request.classeId()), "Classe modifiée"));
+    }
+
+    @Operation(summary = "Options proposées à un étudiant et option retenue")
+    @GetMapping("/{id}/option") @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<ChoixOptionResponse>> options(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(parcoursService.options(id)));
+    }
+
+    @Operation(summary = "Fixer l'option d'un étudiant",
+            description = "Elle décide de la classe qu'il rejoint quand sa filière se divise.")
+    @PutMapping("/{id}/option") @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<ChoixOptionResponse>> choisirOption(
+            @PathVariable UUID id, @Valid @RequestBody ParcoursRequests.ChoixOption request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                parcoursService.choisirOption(id, request.optionId()), "Option enregistrée"));
+    }
+
     @Operation(summary = "Enrôler l'empreinte d'un étudiant",
             description = "Associe la référence logique de l'empreinte capturée sur le lecteur. "
                     + "Aucune donnée biométrique n'est transmise ni stockée.")

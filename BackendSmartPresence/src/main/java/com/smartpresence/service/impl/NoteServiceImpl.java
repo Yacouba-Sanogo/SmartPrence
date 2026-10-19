@@ -1,6 +1,7 @@
 package com.smartpresence.service.impl;
 
 import com.smartpresence.constants.PeriodeScolaire;
+import com.smartpresence.constants.StatutNote;
 import com.smartpresence.constants.TypeEvaluation;
 import com.smartpresence.constants.TypePersonnel;
 import com.smartpresence.dto.request.NoteRequest;
@@ -130,6 +131,7 @@ public class NoteServiceImpl implements NoteService {
         Personnel enseignant = enseignantDuCompte(utilisateurId);
         Note note = noteAvecContexte(noteId);
         assertAuteur(enseignant, note);
+        assertModifiable(note);
 
         // Changer d'étudiant reviendrait à créer une autre note : on l'interdit plutôt
         // que de laisser une correction déplacer silencieusement un résultat.
@@ -149,8 +151,90 @@ public class NoteServiceImpl implements NoteService {
         Personnel enseignant = enseignantDuCompte(utilisateurId);
         Note note = noteAvecContexte(noteId);
         assertAuteur(enseignant, note);
+        assertModifiable(note);
         noteRepository.delete(note);
         log.info("Note supprimée — id={}, enseignant={}", noteId, enseignant.getMatricule());
+    }
+
+    // ------------------------------------------------------------------
+    // Circuit de validation
+    // ------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    public List<NoteResponse> transmettre(UUID utilisateurId, List<UUID> noteIds) {
+        Personnel enseignant = enseignantDuCompte(utilisateurId);
+        List<Note> notes = chargerLot(noteIds);
+        for (Note note : notes) {
+            assertAuteur(enseignant, note);
+            assertModifiable(note);
+        }
+        notes.forEach(note -> {
+            note.setStatut(StatutNote.TRANSMISE);
+            note.setMotifRejet(null);
+        });
+        log.info("{} note(s) transmise(s) — enseignant={}", notes.size(), enseignant.getMatricule());
+        return noteRepository.saveAll(notes).stream().map(this::versReponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NoteResponse> notesAValider(Long classeId) {
+        return noteRepository.findParStatut(StatutNote.TRANSMISE, classeId).stream()
+                .map(this::versReponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<NoteResponse> valider(List<UUID> noteIds) {
+        List<Note> notes = chargerLot(noteIds);
+        notes.forEach(this::assertTransmise);
+        notes.forEach(note -> note.setStatut(StatutNote.VALIDEE));
+        log.info("{} note(s) validée(s)", notes.size());
+        return noteRepository.saveAll(notes).stream().map(this::versReponse).toList();
+    }
+
+    @Override
+    @Transactional
+    public List<NoteResponse> renvoyer(List<UUID> noteIds, String motif) {
+        if (motif == null || motif.isBlank()) {
+            throw new BusinessException("Précisez ce que l'enseignant doit corriger");
+        }
+        List<Note> notes = chargerLot(noteIds);
+        notes.forEach(this::assertTransmise);
+        notes.forEach(note -> {
+            note.setStatut(StatutNote.BROUILLON);
+            note.setMotifRejet(motif.trim());
+        });
+        log.info("{} note(s) renvoyée(s) à leur auteur", notes.size());
+        return noteRepository.saveAll(notes).stream().map(this::versReponse).toList();
+    }
+
+    /** Charge un lot et échoue si une note manque : un lot partiel serait silencieusement faux. */
+    private List<Note> chargerLot(List<UUID> noteIds) {
+        List<UUID> distincts = noteIds.stream().distinct().toList();
+        List<Note> notes = noteRepository.findAvecContexteParIds(distincts);
+        if (notes.size() != distincts.size()) {
+            throw new ResourceNotFoundException("Note", "id", "une ou plusieurs notes du lot");
+        }
+        return notes;
+    }
+
+    /** Une note transmise ou publiée n'est plus entre les mains de son auteur. */
+    private void assertModifiable(Note note) {
+        if (note.getStatut() != StatutNote.BROUILLON) {
+            throw new BusinessException(note.getStatut() == StatutNote.TRANSMISE
+                    ? "Cette note a été transmise à l'administration : elle n'est plus modifiable"
+                    : "Cette note est validée : elle ne peut plus être modifiée", HttpStatus.CONFLICT);
+        }
+    }
+
+    private void assertTransmise(Note note) {
+        if (note.getStatut() != StatutNote.TRANSMISE) {
+            throw new BusinessException(
+                    "Seules les notes transmises peuvent être traitées", HttpStatus.CONFLICT);
+        }
     }
 
     // ------------------------------------------------------------------

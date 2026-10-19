@@ -26,6 +26,12 @@ public interface ClasseMapper {
     // volume d'un établissement, à revoir si la liste devait être paginée.
     @Mapping(target = "nombreEtudiants", expression = "java(entity.getEtudiants() != null ? entity.getEtudiants().size() : 0)")
     @Mapping(target = "nombreEnseignants", expression = "java(entity.getEnseignants() != null ? entity.getEnseignants().size() : 0)")
+    @Mapping(target = "filiereId", source = "filiere.id")
+    @Mapping(target = "filiereLibelle", source = "filiere.libelle")
+    @Mapping(target = "optionId", source = "option.id")
+    @Mapping(target = "optionLibelle", source = "option.libelle")
+    @Mapping(target = "classePrecedenteId", source = "classePrecedente.id")
+    @Mapping(target = "classePrecedenteCode", source = "classePrecedente.code")
     ClasseResponse toResponse(Classe entity);
 
     List<ClasseResponse> toResponseList(List<Classe> entities);
@@ -34,6 +40,9 @@ public interface ClasseMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "promotion", ignore = true)
+    @Mapping(target = "filiere", ignore = true)
+    @Mapping(target = "option", ignore = true)
+    @Mapping(target = "classePrecedente", ignore = true)
     @Mapping(target = "etudiants", ignore = true)
     @Mapping(target = "enseignants", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -43,6 +52,9 @@ public interface ClasseMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "promotion", ignore = true)
+    @Mapping(target = "filiere", ignore = true)
+    @Mapping(target = "option", ignore = true)
+    @Mapping(target = "classePrecedente", ignore = true)
     @Mapping(target = "etudiants", ignore = true)
     @Mapping(target = "enseignants", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

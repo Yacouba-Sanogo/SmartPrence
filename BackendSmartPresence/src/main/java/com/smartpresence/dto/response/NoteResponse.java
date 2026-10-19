@@ -45,4 +45,8 @@ public class NoteResponse {
     private String libelle;
     private LocalDate dateEvaluation;
     private String appreciation;
+
+    private com.smartpresence.constants.StatutNote statut;
+    private String motifRejet;
+    private UUID evaluationId;
 }

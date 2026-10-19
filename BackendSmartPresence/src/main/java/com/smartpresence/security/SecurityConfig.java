@@ -86,10 +86,17 @@ public class SecurityConfig {
                                 // est le numéro CENOU, pas le jeton.
                                 "/inscription",
                                 "/inscription/**",
+                                // Règles et éligibilité au concours : un futur candidat
+                                // n'a pas de compte et rien n'y est conservé.
+                                "/concours/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
+                        // Consultation seule du référentiel : l'écriture reste protégée
+                        // par @PreAuthorize sur le contrôleur.
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/referentiel/departements", "/referentiel/filieres").permitAll()
 
                         // Endpoints réservés aux appareils ESP32 (authentifiés via X-API-KEY)
                         .requestMatchers("/esp32/**").hasAuthority("ROLE_DEVICE")
