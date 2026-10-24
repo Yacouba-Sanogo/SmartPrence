@@ -56,6 +56,10 @@ public final class TableNames {
     public static final String CAHIERS_TEXTES = "cahiers_textes";
     public static final String EVALUATIONS = "evaluations";
     public static final String ABSENCES_EVALUATION = "absences_evaluation";
+    public static final String BIBLIOTHEQUE_DOCUMENTS = "bibliotheque_documents";
+    public static final String BIBLIOTHEQUE_CONTENU = "bibliotheque_contenu";
+    public static final String BIBLIOTHEQUE_LIVRES = "bibliotheque_livres";
+    public static final String BIBLIOTHEQUE_EMPRUNTS = "bibliotheque_emprunts";
 
     // ---------------- Tables de jointure ----------------
     public static final String JOIN_UTILISATEURS_ROLES = "utilisateurs_roles";
