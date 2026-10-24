@@ -13,6 +13,7 @@ export type NomIcone =
   | 'etudiants'
   | 'presences'
   | 'classes'
+  | 'livre'
   | 'salles'
   | 'appareils'
   | 'statistiques'
@@ -96,6 +97,11 @@ export type NomIcone =
           <path d="m12 2.8 9 4.7-9 4.7-9-4.7 9-4.7Z" />
           <path d="m3 12.5 9 4.7 9-4.7" />
           <path d="m3 17.2 9 4.7 9-4.7" />
+        }
+        @case ('livre') {
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" />
+          <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" />
+          <path d="M9 8h7" />
         }
         @case ('salles') {
           <rect x="4" y="3" width="16" height="18" rx="2" />

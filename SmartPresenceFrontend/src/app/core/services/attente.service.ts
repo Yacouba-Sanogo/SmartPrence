@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { CompteurNavigation } from '../../layout/navigation';
 import { AuthService } from './auth.service';
+import { BibliothequeService } from './bibliotheque.service';
 import { JustificationService } from './justification.service';
 import { SignalementService } from './signalement.service';
 
@@ -23,11 +24,13 @@ import { SignalementService } from './signalement.service';
 export class AttenteService {
   private readonly justificationService = inject(JustificationService);
   private readonly signalementService = inject(SignalementService);
+  private readonly bibliothequeService = inject(BibliothequeService);
   private readonly auth = inject(AuthService);
 
   private readonly compteurs = signal<Record<CompteurNavigation, number>>({
     justificatifs: 0,
     signalements: 0,
+    bibliotheque: 0,
   });
 
   /** Nombre de dossiers en attente pour la file demandée. */
@@ -53,6 +56,14 @@ export class AttenteService {
             liste.filter((j) => j.statut === 'EN_ATTENTE').length,
           ),
         error: () => this.majCompteur('justificatifs', 0),
+      });
+    }
+
+    if (this.auth.aUnRole('ADMIN', 'RESPONSABLE_SCOLARITE')) {
+      // Dépôts à modérer et livres en retard : deux choses qui attendent la bibliothèque.
+      this.bibliothequeService.synthese().subscribe({
+        next: (s) => this.majCompteur('bibliotheque', s.documentsEnAttente + s.empruntsEnRetard),
+        error: () => this.majCompteur('bibliotheque', 0),
       });
     }
 

@@ -111,6 +111,17 @@ export const routes: Routes = [
           import('./features/conges/conges-a-traiter.component').then((m) => m.CongesATraiterComponent),
       },
       {
+        path: 'bibliotheque',
+        canActivate: [roleGuard],
+        data: {
+          titre: 'Bibliothèque',
+          rubrique: 'Vie académique',
+          roles: ['ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR'],
+        },
+        loadComponent: () =>
+          import('./features/bibliotheque/bibliotheque.component').then((m) => m.BibliothequeComponent),
+      },
+      {
         path: 'annonces',
         canActivate: [roleGuard],
         data: {
