@@ -14,6 +14,7 @@ import '../../widgets/anneau.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
 import 'shell_etudiant.dart';
+import '../bibliotheque_screen.dart';
 import 'supports_screen.dart';
 
 /// Accueil de l'étudiant.
@@ -303,6 +304,28 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
   }
 
   Widget _tuiles() {
+    return Column(children: [
+      _rangeeTuiles(),
+      const SizedBox(height: Espaces.sm),
+      Row(children: [
+        Expanded(
+          child: Tuile(
+            icone: Icons.local_library_rounded,
+            libelle: 'Bibliothèque',
+            teinte: Couleurs.indigo600,
+            fondIcone: Couleurs.indigo50,
+            surTap: () => Navigator.of(context).push<void>(
+              routeDouce<void>((_) => BibliothequeScreen(auth: widget.auth)),
+            ),
+          ),
+        ),
+        const SizedBox(width: Espaces.sm),
+        const Spacer(),
+      ]),
+    ]);
+  }
+
+  Widget _rangeeTuiles() {
     return Row(
       children: [
         Expanded(

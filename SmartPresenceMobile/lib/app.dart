@@ -9,6 +9,7 @@ import 'screens/connexion_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/enseignant/shell_enseignant.dart';
 import 'screens/etudiant/shell_etudiant.dart';
+import 'widgets/bandeau_hors_ligne.dart';
 import 'widgets/communs.dart';
 
 /// Racine de l'application.
@@ -53,6 +54,12 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
       title: 'SmartPresence',
       debugShowCheckedModeBanner: false,
       theme: themeSmartPresence(),
+      builder: (context, child) => Stack(
+        children: [
+          if (child != null) child,
+          BandeauHorsLigne(etat: _auth.client.horsLigne),
+        ],
+      ),
       home: ListenableBuilder(
         listenable: _auth,
         builder: (context, _) => _ecranCourant(),

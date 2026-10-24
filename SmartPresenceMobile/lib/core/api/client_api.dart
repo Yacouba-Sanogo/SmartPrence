@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'cache_hors_ligne.dart';
 import 'config_api.dart';
 import 'erreurs.dart';
 
@@ -12,10 +14,21 @@ import 'erreurs.dart';
 /// JWT, le déballage de l'enveloppe uniforme `{success, message, data, timestamp}`, et
 /// la traduction de toute panne en [ErreurApi] déjà rédigée pour l'utilisateur.
 class ClientApi {
-  ClientApi({http.Client? client, this.surSessionExpiree})
-      : _client = client ?? http.Client();
+  ClientApi({http.Client? client, CacheHorsLigne? cache, this.surSessionExpiree})
+      : _client = client ?? http.Client(),
+        _cache = cache ?? CacheHorsLigne();
 
   final http.Client _client;
+  final CacheHorsLigne _cache;
+
+  /// `true` tant que la dernière requête a échoué faute de réseau : l'interface l'affiche.
+  final ValueNotifier<bool> horsLigne = ValueNotifier<bool>(false);
+
+  /// Date des données affichées quand elles viennent du cache, `null` sinon.
+  DateTime? donneesDuCache;
+
+  /// Oublie les données conservées pour l'accès hors ligne (déconnexion).
+  Future<void> viderCache() => _cache.vider();
 
   /// Appelé lorsqu'une réponse 401 arrive : permet de fermer la session en un point unique.
   final void Function()? surSessionExpiree;
@@ -37,8 +50,24 @@ class ClientApi {
     );
   }
 
-  Future<dynamic> get(String chemin, {Map<String, dynamic>? parametres}) {
-    return _executer(() => _client.get(_uri(chemin, parametres), headers: _entetes));
+  /// Lit une ressource. Sans réseau, rend la dernière réponse connue plutôt qu'une erreur.
+  Future<dynamic> get(String chemin, {Map<String, dynamic>? parametres}) async {
+    final uri = _uri(chemin, parametres);
+    final cle = uri.path + (uri.hasQuery ? '?${uri.query}' : '');
+    try {
+      final donnees = await _executer(() => _client.get(uri, headers: _entetes));
+      donneesDuCache = null;
+      horsLigne.value = false;
+      unawaited(_cache.ecrire(cle, donnees));
+      return donnees;
+    } on ErreurApi catch (e) {
+      if (!e.horsLigne) rethrow;
+      horsLigne.value = true;
+      final entree = await _cache.lire(cle);
+      if (entree == null) rethrow;
+      donneesDuCache = entree.enregistreLe;
+      return entree.donnees;
+    }
   }
 
   Future<dynamic> post(String chemin, {Object? corps}) {

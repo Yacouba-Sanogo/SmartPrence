@@ -4,10 +4,12 @@ import '../core/auth/auth_service.dart';
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
 import '../models/profil.dart';
+import '../core/design/animations.dart';
 import '../widgets/choix_option.dart';
 import '../widgets/communs.dart';
 import '../widgets/entete.dart';
 import '../widgets/mot_de_passe_sheet.dart';
+import 'bibliotheque_screen.dart';
 
 /// Profil de l'utilisateur connecté et déconnexion.
 ///
@@ -44,6 +46,19 @@ class ProfilScreen extends StatelessWidget {
             if (profil?.estEtudiant == true) ChoixOption(client: auth.client),
             _noteBiometrie(),
             const SizedBox(height: Espaces.xl),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                routeDouce<void>((_) => BibliothequeScreen(auth: auth)),
+              ),
+              icon: const Icon(Icons.local_library_rounded, size: 19),
+              label: const Text('Bibliothèque'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Couleurs.indigo600,
+                side: const BorderSide(color: Couleurs.royal200),
+                minimumSize: const Size(0, 48),
+              ),
+            ),
+            const SizedBox(height: Espaces.sm),
             OutlinedButton.icon(
               onPressed: () => _changerMotDePasse(context),
               icon: const Icon(Icons.lock_reset_rounded, size: 19),

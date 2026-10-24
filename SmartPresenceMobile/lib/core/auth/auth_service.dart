@@ -100,6 +100,8 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _fermerSession() async {
     _client.definirJeton(null);
+    await _client.viderCache();
+    _client.horsLigne.value = false;
     _profil = null;
     await _depot.effacer();
     _passerA(EtatAuth.deconnecte);
