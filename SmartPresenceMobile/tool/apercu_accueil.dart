@@ -10,7 +10,10 @@ import 'package:http/testing.dart';
 import 'package:smartpresence_mobile/core/api/client_api.dart';
 import 'package:smartpresence_mobile/core/auth/auth_service.dart';
 import 'package:smartpresence_mobile/core/design/theme.dart';
+import 'package:smartpresence_mobile/screens/bibliotheque_screen.dart';
+import 'package:smartpresence_mobile/screens/connexion_screen.dart';
 import 'package:smartpresence_mobile/screens/etudiant/shell_etudiant.dart';
+import 'package:smartpresence_mobile/screens/landing_screen.dart';
 
 String _jour(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -108,6 +111,25 @@ Object? _donnees(String chemin) {
       },
     ];
   }
+  if (chemin.endsWith('/bibliotheque/documents')) {
+    return [
+      {'id': 'd1', 'type': 'MEMOIRE', 'titre': 'Sécurité des réseaux sans fil', 'auteur': 'Sow Modibo', 'filiereLibelle': 'Informatique', 'annee': 2024, 'nomFichier': 'memoire.pdf', 'taille': 2097152, 'statut': 'PUBLIE', 'deposePar': 'Administration'},
+      {'id': 'd2', 'type': 'SUJET', 'titre': 'Examen d’algorithmique — session 1', 'matiere': 'Algorithmique', 'annee': 2023, 'nomFichier': 'examen.pdf', 'taille': 120000, 'statut': 'PUBLIE', 'deposePar': 'Administration'},
+      {'id': 'd3', 'type': 'MEMOIRE', 'titre': 'Système de gestion de présence biométrique', 'auteur': 'Keita Sira', 'filiereLibelle': 'Informatique', 'annee': 2025, 'nomFichier': 'memoire2.pdf', 'taille': 3145728, 'statut': 'PUBLIE', 'deposePar': 'Administration'},
+    ];
+  }
+  if (chemin.endsWith('/bibliotheque/livres')) {
+    return [
+      {'id': 'l1', 'titre': 'Introduction aux bases de données', 'auteur': 'C. J. Date', 'categorie': 'Informatique', 'emplacement': 'Rayon B2', 'exemplaires': 3, 'disponibles': 2},
+      {'id': 'l2', 'titre': 'Algorithmique et structures de données', 'auteur': 'T. Cormen', 'categorie': 'Informatique', 'emplacement': 'Rayon A1', 'exemplaires': 1, 'disponibles': 0},
+    ];
+  }
+  if (chemin.endsWith('/bibliotheque/mes-emprunts')) {
+    final prevu = maintenant.add(const Duration(days: 2));
+    return [
+      {'id': 'e1', 'livreTitre': 'Algorithmique et structures de données', 'livreAuteur': 'T. Cormen', 'emprunteLe': _jour(maintenant.subtract(const Duration(days: 12))), 'retourPrevu': _jour(prevu), 'statut': 'EN_COURS', 'joursDeRetard': 0},
+    ];
+  }
   return [];
 }
 
@@ -123,9 +145,17 @@ Future<void> main() async {
   });
   final auth = AuthService(client: ClientApi(client: client));
   await auth.connecter('moussa@gmail.com', 'demo');
+  // ?ecran=accueil (défaut) | connexion | landing | bibliotheque
+  final ecran = Uri.base.queryParameters['ecran'] ?? 'accueil';
+  final Widget page = switch (ecran) {
+    'connexion' => ConnexionScreen(auth: AuthService(client: ClientApi(client: client)), surRetour: () {}),
+    'landing' => LandingScreen(auth: auth, surCommencer: () {}),
+    'bibliotheque' => BibliothequeScreen(auth: auth),
+    _ => ShellEtudiant(auth: auth),
+  };
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: themeSmartPresence(),
-    home: ShellEtudiant(auth: auth),
+    home: page,
   ));
 }

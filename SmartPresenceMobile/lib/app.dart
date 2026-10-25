@@ -74,7 +74,11 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
     if (_auth.etat == EtatAuth.deconnecte) {
       return _accueilVu == false
           ? LandingScreen(auth: _auth, surCommencer: _passerLAccueil)
-          : ConnexionScreen(auth: _auth);
+          : ConnexionScreen(
+              auth: _auth,
+              // Revenir à la présentation sans effacer le fait de l'avoir déjà vue.
+              surRetour: () => setState(() => _accueilVu = false),
+            );
     }
     return _apresConnexion();
   }
