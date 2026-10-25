@@ -1,4 +1,5 @@
 import '../core/api/client_api.dart';
+import '../models/annonce.dart';
 import '../models/gestion.dart';
 import '../models/note.dart';
 import '../models/presence.dart';
@@ -103,6 +104,18 @@ class EtudiantService {
     return donnees
         .map((e) => Seance.depuisJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  // ----- Notifications --------------------------------------------------
+
+  Future<List<Annonce>> notifications() async {
+    final donnees = await _client.get('/notifications');
+    if (donnees is! List) return const [];
+    return donnees.map((e) => Annonce.depuisJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> toutMarquerLu() async {
+    await _client.patch('/notifications/lues');
   }
 
   Future<List<Justificatif>> mesJustificatifs() async {
