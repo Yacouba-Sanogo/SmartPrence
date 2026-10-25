@@ -11,6 +11,7 @@ import '../services/bibliotheque_service.dart';
 import '../services/fichier/choix_fichier.dart';
 import '../widgets/communs.dart';
 import '../widgets/entete.dart';
+import '../widgets/accueil_etudiant.dart';
 import '../widgets/formulaire.dart';
 
 enum _Onglet { documents, livres, emprunts, depots }
@@ -158,32 +159,45 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
       backgroundColor: Couleurs.fond,
       body: Column(
         children: [
-          EnteteDegrade(
-            debordement: 30,
-            padding: const EdgeInsets.fromLTRB(Espaces.sm, Espaces.sm, Espaces.lg, Espaces.md),
-            enfant: Row(
+          Container(
+            width: double.infinity,
+            clipBehavior: Clip.antiAlias,
+            decoration: const BoxDecoration(
+              gradient: Couleurs.degradeEntete,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            child: Stack(
               children: [
-                ActionEntete(icone: Icons.arrow_back_rounded, surTap: () => Navigator.of(context).maybePop()),
-                const SizedBox(width: Espaces.xs),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                const Positioned.fill(child: FondPhotoCampus()),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                      Espaces.sm, MediaQuery.of(context).padding.top + Espaces.sm, Espaces.lg, Espaces.xl),
+                  child: Row(
                     children: [
-                      Text('Bibliothèque', style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 19)),
-                      const SizedBox(height: 2),
-                      Text('${_documents.length} documents · ${_livres.length} livres',
-                          style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.72), fontSize: 11.5)),
+                      ActionEntete(icone: Icons.arrow_back_rounded, surTap: () => Navigator.of(context).maybePop()),
+                      const SizedBox(width: Espaces.xs),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Bibliothèque', style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 22)),
+                            const SizedBox(height: 2),
+                            Text('Vos documents, toujours à portée de main',
+                                style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.82), fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      if (_etudiant) ActionEntete(icone: Icons.upload_file_rounded, surTap: _deposer),
                     ],
                   ),
                 ),
-                if (_etudiant) ActionEntete(icone: Icons.upload_file_rounded, surTap: _deposer),
               ],
             ),
           ),
           Expanded(
-            child: Transform.translate(
-              offset: const Offset(0, -24),
+            child: Padding(
+              padding: const EdgeInsets.only(top: Espaces.md),
               child: Column(
                 children: [
                   _selecteur(),
@@ -210,27 +224,67 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
     _Onglet.depots: 'Dépôts',
   };
 
+  static const _icones = {
+    _Onglet.documents: Icons.description_outlined,
+    _Onglet.livres: Icons.menu_book_outlined,
+    _Onglet.emprunts: Icons.bookmark_border_rounded,
+    _Onglet.depots: Icons.upload_file_outlined,
+  };
+
+  int _nombre(_Onglet o) => switch (o) {
+        _Onglet.documents => _documents.length,
+        _Onglet.livres => _livres.length,
+        _Onglet.emprunts => _emprunts.length,
+        _Onglet.depots => _depots.length,
+      };
+
   Widget _selecteur() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Espaces.md + 2, 0, Espaces.md + 2, Espaces.xs),
-      child: SingleChildScrollView(
+    return SizedBox(
+      height: 84,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final o in _onglets)
-              Padding(
-                padding: const EdgeInsets.only(right: Espaces.sm),
-                child: ChoiceChip(
-                  label: Text(_libelles[o]!),
-                  selected: _onglet == o,
-                  onSelected: (_) => setState(() {
-                    _onglet = o;
-                    _recherche.clear();
-                  }),
-                ),
+        padding: const EdgeInsets.symmetric(horizontal: Espaces.lg),
+        itemCount: _onglets.length,
+        separatorBuilder: (_, __) => const SizedBox(width: Espaces.sm + 2),
+        itemBuilder: (_, i) {
+          final o = _onglets[i];
+          final actif = _onglet == o;
+          return GestureDetector(
+            onTap: () => setState(() {
+              _onglet = o;
+              _recherche.clear();
+            }),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 104,
+              padding: const EdgeInsets.fromLTRB(Espaces.md, Espaces.md - 2, Espaces.md, Espaces.md - 2),
+              decoration: BoxDecoration(
+                gradient: actif ? Couleurs.degradeEntete : null,
+                color: actif ? null : Couleurs.carte,
+                borderRadius: BorderRadius.circular(Rayons.tuile),
+                boxShadow: actif ? Couleurs.ombreRoyal : Couleurs.ombreCarte,
               ),
-          ],
-        ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(_icones[o], size: 22, color: actif ? Colors.white : Couleurs.royal600),
+                      const Spacer(),
+                      Text('${_nombre(o)}',
+                          style: Typo.mono(15, graisse: FontWeight.w700, couleur: actif ? Colors.white : Couleurs.royal600)),
+                    ],
+                  ),
+                  Text(_libelles[o]!,
+                      style: Typo.legende.copyWith(
+                          fontSize: 12, fontWeight: FontWeight.w700, color: actif ? Colors.white : Couleurs.encre),
+                      maxLines: 1),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -258,20 +312,12 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
                   for (final (valeur, texte) in [(null, 'Tout'), ('MEMOIRE', 'Mémoires'), ('SUJET', 'Sujets')])
                     Padding(
                       padding: const EdgeInsets.only(right: Espaces.xs + 2),
-                      child: FilterChip(
-                        label: Text(texte),
-                        selected: _type == valeur,
-                        onSelected: (_) => setState(() => _type = valeur),
-                      ),
+                      child: _PuceFiltre(texte, actif: _type == valeur, surTap: () => setState(() => _type = valeur)),
                     ),
                   for (final f in filieres)
                     Padding(
                       padding: const EdgeInsets.only(right: Espaces.xs + 2),
-                      child: FilterChip(
-                        label: Text(f),
-                        selected: _filiere == f,
-                        onSelected: (s) => setState(() => _filiere = s ? f : null),
-                      ),
+                      child: _PuceFiltre(f, actif: _filiere == f, surTap: () => setState(() => _filiere = _filiere == f ? null : f)),
                     ),
                 ],
               ),
@@ -332,6 +378,7 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
     final liste = _documentsFiltres;
     return [
       _barreRecherche(filtres: true),
+      const TitreSection('Documents récents', icone: Icons.history_rounded),
       if (liste.isEmpty)
         _vide(Icons.menu_book_outlined, 'Aucun document', 'Aucun mémoire ni sujet ne correspond à votre recherche.')
       else
@@ -403,6 +450,34 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
   }
 }
 
+/// Puce de filtre : pleine et bleue quand elle est active, contour gris discret sinon.
+class _PuceFiltre extends StatelessWidget {
+  const _PuceFiltre(this.libelle, {required this.actif, required this.surTap});
+
+  final String libelle;
+  final bool actif;
+  final VoidCallback surTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: surTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: actif ? Couleurs.royal600 : Couleurs.carte,
+          borderRadius: BorderRadius.circular(Rayons.pilule),
+          border: Border.all(color: actif ? Couleurs.royal600 : Couleurs.trait),
+        ),
+        child: Text(libelle,
+            style: Typo.legende.copyWith(
+                fontSize: 12.5, fontWeight: FontWeight.w600, color: actif ? Colors.white : Couleurs.encreAttenuee)),
+      ),
+    );
+  }
+}
+
 class _CarteDocument extends StatelessWidget {
   const _CarteDocument({required this.doc, required this.surTap, this.enCours = false, this.afficherStatut = false, this.action});
 
@@ -414,54 +489,110 @@ class _CarteDocument extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teinte = doc.estMemoire ? Couleurs.indigo600 : Couleurs.alerteVif;
+    final teinte = doc.estMemoire ? Couleurs.royal600 : Couleurs.alerte;
+    final fond = doc.estMemoire ? Couleurs.royal50 : Couleurs.alerteFond;
     final (texteStatut, couleurStatut) = switch (doc.statut) {
-      'PUBLIE' => ('Publié', Couleurs.succesVif),
-      'REFUSE' => ('Refusé', Couleurs.dangerVif),
-      _ => ('En attente de validation', Couleurs.alerteVif),
+      'PUBLIE' => ('Publié', Couleurs.succes),
+      'REFUSE' => ('Refusé', Couleurs.danger),
+      _ => ('En attente de validation', Couleurs.alerte),
     };
+    final extension = doc.extension.toUpperCase();
+
     return Carte(
       surTap: enCours ? null : surTap,
-      padding: const EdgeInsets.fromLTRB(Espaces.md + 2, Espaces.md + 2, Espaces.sm, Espaces.md + 2),
+      rayon: Rayons.carte - 4,
+      padding: const EdgeInsets.fromLTRB(Espaces.md, Espaces.md, Espaces.sm, Espaces.md),
       enfant: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(color: teinte.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(Rayons.md)),
+            width: 58,
+            height: 70,
+            decoration: BoxDecoration(
+              color: fond,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: teinte.withValues(alpha: 0.18)),
+            ),
             child: enCours
-                ? Padding(padding: const EdgeInsets.all(13), child: CircularProgressIndicator(strokeWidth: 2.2, color: teinte))
-                : Icon(doc.estMemoire ? Icons.school_rounded : Icons.quiz_rounded, size: 24, color: teinte),
+                ? Padding(padding: const EdgeInsets.all(20), child: CircularProgressIndicator(strokeWidth: 2.2, color: teinte))
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(doc.estMemoire ? Icons.school_rounded : Icons.quiz_rounded, size: 26, color: teinte),
+                      const SizedBox(height: 4),
+                      Text(extension.isEmpty ? 'DOC' : extension,
+                          style: Typo.legende.copyWith(color: teinte, fontSize: 9.5, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
           ),
           const SizedBox(width: Espaces.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(doc.titre, style: Typo.libelle, maxLines: 2, overflow: TextOverflow.ellipsis),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: Text(doc.titre, style: Typo.libelle.copyWith(fontSize: 13.5), maxLines: 2, overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: fond, borderRadius: BorderRadius.circular(Rayons.pilule)),
+                      child: Text(doc.estMemoire ? 'Mémoire' : 'Sujet',
+                          style: Typo.legende.copyWith(color: teinte, fontSize: 10, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                if (doc.sousTitre.isNotEmpty || doc.annee != null)
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline_rounded, size: 13, color: Couleurs.encreDiscrete),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          [if (doc.sousTitre.isNotEmpty) doc.sousTitre, if (doc.annee != null) '${doc.annee}'].join(' · '),
+                          style: Typo.legendePale.copyWith(fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 2),
-                Text(
-                  [
-                    doc.estMemoire ? 'Mémoire' : 'Sujet',
-                    if (doc.sousTitre.isNotEmpty) doc.sousTitre,
-                    if (doc.filiere != null) doc.filiere!,
-                    if (doc.annee != null) '${doc.annee}',
-                  ].join(' · '),
-                  style: Typo.legendePale,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    const Icon(Icons.insert_drive_file_outlined, size: 13, color: Couleurs.encreDiscrete),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        [if (extension.isNotEmpty) extension, doc.tailleLisible, if (doc.filiere != null) doc.filiere!].join(' · '),
+                        style: Typo.legendePale.copyWith(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
                 if (afficherStatut) ...[
                   const SizedBox(height: 4),
-                  Text(texteStatut, style: Typo.legende.copyWith(color: couleurStatut, fontWeight: FontWeight.w600)),
+                  Text(texteStatut, style: Typo.legende.copyWith(color: couleurStatut, fontWeight: FontWeight.w700, fontSize: 11.5)),
                   if (doc.statut == 'REFUSE' && doc.motifRefus != null)
-                    Text('Motif : ${doc.motifRefus}', style: Typo.legendePale),
-                ] else
-                  Text(doc.tailleLisible, style: Typo.legendePale),
+                    Text('Motif : ${doc.motifRefus}', style: Typo.legendePale.copyWith(fontSize: 11)),
+                ],
               ],
             ),
           ),
-          if (action != null) action!,
+          const SizedBox(width: 4),
+          action ??
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Couleurs.royal200),
+                ),
+                child: const Icon(Icons.file_download_outlined, size: 19, color: Couleurs.royal600),
+              ),
         ],
       ),
     );
@@ -477,42 +608,73 @@ class _CarteLivre extends StatelessWidget {
   Widget build(BuildContext context) {
     final dispo = livre.disponibles > 0;
     return Carte(
-      padding: const EdgeInsets.all(Espaces.md + 2),
+      rayon: Rayons.carte - 4,
+      padding: const EdgeInsets.all(Espaces.md),
       enfant: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(Rayons.md)),
-            child: const Icon(Icons.menu_book_rounded, size: 24, color: Couleurs.indigo600),
+            width: 58,
+            height: 70,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Couleurs.royal500, Couleurs.royal800],
+              ),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: Couleurs.ombreCarte,
+            ),
+            child: const Icon(Icons.menu_book_rounded, size: 28, color: Colors.white),
           ),
           const SizedBox(width: Espaces.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(livre.titre, style: Typo.libelle, maxLines: 2, overflow: TextOverflow.ellipsis),
-                Text(
-                  [livre.auteur, if (livre.categorie != null) livre.categorie!].join(' · '),
-                  style: Typo.legendePale,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: Text(livre.titre, style: Typo.libelle.copyWith(fontSize: 13.5), maxLines: 2, overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: dispo ? Couleurs.succesFond : Couleurs.dangerFond,
+                        borderRadius: BorderRadius.circular(Rayons.pilule),
+                      ),
+                      child: Text(
+                        dispo ? '${livre.disponibles} dispo' : 'Sorti',
+                        style: Typo.legende.copyWith(color: dispo ? Couleurs.succes : Couleurs.danger, fontWeight: FontWeight.w700, fontSize: 10),
+                      ),
+                    ),
+                  ],
                 ),
-                if (livre.emplacement != null) Text('Rayon : ${livre.emplacement}', style: Typo.legendePale),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline_rounded, size: 13, color: Couleurs.encreDiscrete),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        [livre.auteur, if (livre.categorie != null) livre.categorie!].join(' · '),
+                        style: Typo.legendePale.copyWith(fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                if (livre.emplacement != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.place_outlined, size: 13, color: Couleurs.encreDiscrete),
+                      const SizedBox(width: 4),
+                      Text('Rayon : ${livre.emplacement}', style: Typo.legendePale.copyWith(fontSize: 11)),
+                    ],
+                  ),
+                ],
               ],
-            ),
-          ),
-          const SizedBox(width: Espaces.sm),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: dispo ? Couleurs.succesFond : Couleurs.dangerFond,
-              borderRadius: BorderRadius.circular(Rayons.pilule),
-            ),
-            child: Text(
-              dispo ? '${livre.disponibles} dispo' : 'Sorti',
-              style: Typo.legende.copyWith(
-                  color: dispo ? Couleurs.succes : Couleurs.danger, fontWeight: FontWeight.w600, fontSize: 11.5),
             ),
           ),
         ],

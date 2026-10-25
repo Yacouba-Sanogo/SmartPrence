@@ -208,7 +208,11 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
 
   List<Widget> _contenu() {
     return [
-      PanneauAssiduite(assiduite: _assiduite, semaine: _semaine),
+      CarteAssiduite(assiduite: _assiduite, semaine: _semaine),
+      if (!_assiduite.sansHistorique) ...[
+        const SizedBox(height: Espaces.sm + 2),
+        _statistiques(),
+      ],
       const SizedBox(height: Espaces.md + 2),
       BanniereSeance(
         seance: _prochaine,
@@ -218,8 +222,66 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
       const TitreSection('Accès rapide'),
       _raccourcis(),
       const SizedBox(height: Espaces.xl + 4),
+      TitreSection(
+        'Activité récente',
+        icone: Icons.history_rounded,
+        action: _notifications.isEmpty ? null : 'Voir tout',
+        surAction: _ouvrirNotifications,
+      ),
+      ActiviteRecente(notifications: _notifications, surTap: _ouvrirNotifications),
+      const SizedBox(height: Espaces.xl + 4),
       _derniersReleves(),
     ];
+  }
+
+  /// Relevés de la semaine en cours pour un statut : le mouvement que montre chaque carte.
+  int _cetteSemaine(StatutPresence statut) {
+    final aujourdhui = DateTime.now();
+    final lundi = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day)
+        .subtract(Duration(days: aujourdhui.weekday - 1));
+    return _derniers.where((r) => r.statut == statut && !r.date.isBefore(lundi)).length;
+  }
+
+  Widget _statistiques() {
+    return Row(
+      children: [
+        Expanded(
+          child: CarteStatistique(
+            icone: Icons.person_rounded,
+            libelle: 'Présences',
+            valeur: _assiduite.presents,
+            total: _assiduite.total,
+            cetteSemaine: _cetteSemaine(StatutPresence.present),
+            teinte: Couleurs.succes,
+            fond: Couleurs.succesFond,
+          ),
+        ),
+        const SizedBox(width: Espaces.sm),
+        Expanded(
+          child: CarteStatistique(
+            icone: Icons.schedule_rounded,
+            libelle: 'Retards',
+            valeur: _assiduite.retards,
+            total: _assiduite.total,
+            cetteSemaine: _cetteSemaine(StatutPresence.retard),
+            teinte: Couleurs.alerte,
+            fond: Couleurs.alerteFond,
+          ),
+        ),
+        const SizedBox(width: Espaces.sm),
+        Expanded(
+          child: CarteStatistique(
+            icone: Icons.close_rounded,
+            libelle: 'Absences',
+            valeur: _assiduite.absents,
+            total: _assiduite.total,
+            cetteSemaine: _cetteSemaine(StatutPresence.absent),
+            teinte: Couleurs.danger,
+            fond: Couleurs.dangerFond,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _raccourcis() {
@@ -229,13 +291,13 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
           gauche: RaccourciAccueil(
             icone: Icons.calendar_month_rounded,
             libelle: 'Emploi du temps',
-            detail: 'Cours de la semaine',
+            detail: 'Consultez votre planning',
             surTap: () => widget.surNaviguer?.call(OngletsEtudiant.emploiDuTemps),
           ),
           droite: RaccourciAccueil(
             icone: Icons.school_rounded,
             libelle: 'Mes notes',
-            detail: 'Résultats et moyennes',
+            detail: 'Consultez vos résultats',
             surTap: () => widget.surNaviguer?.call(OngletsEtudiant.notes),
           ),
         ),
@@ -244,7 +306,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
           gauche: RaccourciAccueil(
             icone: Icons.folder_copy_rounded,
             libelle: 'Supports de cours',
-            detail: 'Documents à télécharger',
+            detail: 'Téléchargez vos ressources',
             surTap: () => Navigator.of(context).push<void>(
               routeDouce<void>((_) => SupportsEtudiantScreen(auth: widget.auth)),
             ),
@@ -252,7 +314,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
           droite: RaccourciAccueil(
             icone: Icons.local_library_rounded,
             libelle: 'Bibliothèque',
-            detail: 'Mémoires, sujets, livres',
+            detail: 'Explorez la bibliothèque',
             surTap: () => Navigator.of(context).push<void>(
               routeDouce<void>((_) => BibliothequeScreen(auth: widget.auth)),
             ),

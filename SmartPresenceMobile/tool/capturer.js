@@ -55,8 +55,13 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
   await cmd('Page.enable');
   await cmd('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
   for (const ecran of ecrans) {
-    await cmd('Page.navigate', { url: `${base}/?ecran=${ecran}` });
+    await cmd('Page.navigate', { url: `${base}/?ecran=${ecran.replace('-bas', '')}` });
     await attendre(9000);
+    const defiler = Number(process.env.DEFILER || 0);
+    if (defiler > 0 && ecran.includes('-bas')) {
+      await cmd('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 200, y: 400, deltaX: 0, deltaY: defiler });
+      await attendre(1200);
+    }
     const r = await cmd('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(sortie, `${ecran}.png`), Buffer.from(r.result.data, 'base64'));
     console.log('capture', ecran);

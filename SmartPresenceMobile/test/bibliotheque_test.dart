@@ -69,7 +69,6 @@ void main() {
 
     expect(find.text('Securite des reseaux'), findsOneWidget);
     expect(find.text('Examen algorithmique'), findsOneWidget);
-    expect(find.text('2 documents · 1 livres'), findsOneWidget);
 
     // La recherche se fait sur l'appareil, donc aussi sans réseau, accents ignorés.
     await t.enterText(find.byType(TextField), 'ALGORITHMIQUE');
@@ -77,7 +76,7 @@ void main() {
     expect(find.text('Securite des reseaux'), findsNothing);
     expect(find.text('Examen algorithmique'), findsOneWidget);
 
-    await t.tap(find.widgetWithText(ChoiceChip, 'Livres'));
+    await t.tap(find.text('Livres'));
     await t.pump(const Duration(seconds: 1));
     await t.pump(const Duration(seconds: 1));
     expect(find.text('Introduction aux bases de donnees'), findsOneWidget);
