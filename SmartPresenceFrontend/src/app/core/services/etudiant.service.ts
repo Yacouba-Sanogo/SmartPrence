@@ -6,6 +6,26 @@ import { ApiResponse } from '../models/api.model';
 import { Classe } from '../models/classe.model';
 import { CompteEtudiant, Etudiant, EtudiantRequest } from '../models/etudiant.model';
 
+/** Ligne d'une liste à importer. */
+export interface LigneImport {
+  matricule: string;
+  nom: string;
+  prenom: string;
+  email?: string | null;
+  telephone?: string | null;
+  dateNaissance?: string | null;
+}
+
+export type StatutLigneImport = 'CREE' | 'IGNORE' | 'ERREUR';
+
+export interface BilanImport {
+  simulation: boolean;
+  creees: number;
+  ignorees: number;
+  erreurs: number;
+  lignes: { indice: number; matricule: string; statut: StatutLigneImport; message: string }[];
+}
+
 /** Référentiel des étudiants, enrôlement biométrique et accès mobile. */
 @Injectable({ providedIn: 'root' })
 export class EtudiantService {
@@ -16,6 +36,13 @@ export class EtudiantService {
     let params = new HttpParams();
     if (classeId) params = params.set('classeId', String(classeId));
     return extraireDonnees(this.http.get<ApiResponse<Etudiant[]>>(this.base, { params }));
+  }
+
+  /** Inscrit une liste d'étudiants dans une classe ; `simulation` vérifie sans rien enregistrer. */
+  importer(classeId: number, etudiants: LigneImport[], simulation: boolean): Observable<BilanImport> {
+    return extraireDonnees(
+      this.http.post<ApiResponse<BilanImport>>(`${this.base}/import`, { classeId, simulation, etudiants }),
+    );
   }
 
   creer(etudiant: EtudiantRequest): Observable<Etudiant> {

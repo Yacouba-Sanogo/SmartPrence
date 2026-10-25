@@ -14,6 +14,7 @@ import { EtatComponent } from '../../shared/ui/etat.component';
 import { IconeComponent } from '../../shared/ui/icone.component';
 import { CompteDialogComponent } from './compte-dialog.component';
 import { EtudiantDialogComponent } from './etudiant-dialog.component';
+import { ImportEtudiantsDialogComponent } from './import-etudiants-dialog.component';
 
 type FiltreEnrolement = 'TOUS' | 'ENROLES' | 'NON_ENROLES';
 type FiltreAcces = 'TOUS' | 'AVEC' | 'SANS';
@@ -30,7 +31,7 @@ type FiltreAcces = 'TOUS' | 'AVEC' | 'SANS';
   selector: 'sp-etudiants-liste',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [ImportEtudiantsDialogComponent,
     FormsModule,
     IconeComponent,
     EtatComponent,
@@ -51,6 +52,16 @@ type FiltreAcces = 'TOUS' | 'AVEC' | 'SANS';
           <button type="button" class="btn btn-secondaire" (click)="charger()" [disabled]="chargement()">
             <sp-icone nom="rafraichir" [taille]="16" [epaisseur]="1.7" />
             Actualiser
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondaire"
+            (click)="importOuvert.set(true)"
+            [disabled]="classes().length === 0"
+            title="Inscrire plusieurs étudiants depuis un fichier CSV, Excel ou une photo"
+          >
+            <sp-icone nom="telecharger" [taille]="16" [epaisseur]="1.8" />
+            Importer une liste
           </button>
           <button
             type="button"
@@ -351,6 +362,14 @@ type FiltreAcces = 'TOUS' | 'AVEC' | 'SANS';
       </section>
     </div>
 
+    @if (importOuvert()) {
+      <sp-import-etudiants-dialog
+        [classes]="classes()"
+        (fermer)="apresImport()"
+        (termine)="apresImport()"
+      />
+    }
+
     @if (dialogueOuvert()) {
       <sp-etudiant-dialog
         [etudiant]="etudiantEnEdition()"
@@ -394,6 +413,7 @@ export class EtudiantsListeComponent {
   readonly erreurAction = signal('');
 
   readonly dialogueOuvert = signal(false);
+  readonly importOuvert = signal(false);
   readonly etudiantEnEdition = signal<Etudiant | null>(null);
   readonly etudiantAEnroler = signal<Etudiant | null>(null);
   readonly enrolementEnCours = signal(false);
@@ -488,6 +508,12 @@ export class EtudiantsListeComponent {
         this.chargement.set(false);
       },
     });
+  }
+
+  /** Ferme l'import et recharge la liste : des étudiants ont pu être inscrits même si on abandonne. */
+  apresImport(): void {
+    this.importOuvert.set(false);
+    this.charger();
   }
 
   ouvrirCreation(): void {
