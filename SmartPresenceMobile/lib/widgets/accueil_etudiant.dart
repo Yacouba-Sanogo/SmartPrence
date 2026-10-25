@@ -1,66 +1,20 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../core/dates.dart';
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
+import '../core/preferences_app.dart';
 import '../models/annonce.dart';
 import '../models/profil.dart';
 import '../models/seance.dart';
 import '../models/statistiques.dart';
 import 'anneau.dart';
+import 'fond_campus.dart';
 import 'communs.dart';
 import 'logo_enetp.dart';
-
-/// Photo du bâtiment de l'école, teintée de bleu royal, sous un voile qui s'ouvre vers la droite.
-///
-/// Recadrée sur la façade : le bas de l'original montre des voitures, qu'on ne veut pas voir.
-class FondPhotoCampus extends StatelessWidget {
-  const FondPhotoCampus({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Opacity(
-          opacity: 0.62,
-          child: ColorFiltered(
-            // Niveaux de gris, un peu éclaircis : la façade ocre devient bleutée sous le voile.
-            colorFilter: const ColorFilter.matrix(<double>[
-              0.33, 0.33, 0.33, 0, 25,
-              0.33, 0.33, 0.33, 0, 25,
-              0.33, 0.33, 0.33, 0, 25,
-              0, 0, 0, 1, 0,
-            ]),
-            child: Image.asset(
-              'assets/images/campus.jpg',
-              fit: BoxFit.cover,
-              alignment: Alignment.centerRight,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-        ),
-        // Voile bleu : opaque à gauche pour le texte, transparent à droite pour la photo.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Couleurs.royal900.withValues(alpha: 0.96),
-                Couleurs.royal800.withValues(alpha: 0.80),
-                Couleurs.royal600.withValues(alpha: 0.38),
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 /// En-tête de l'accueil étudiant.
 ///
@@ -90,8 +44,11 @@ class EnteteAccueil extends StatelessWidget {
   Widget build(BuildContext context) {
     final haut = MediaQuery.of(context).padding.top;
     final classe = profil?.classeLibelle ?? profil?.classeCode;
+    // Texte agrandi : la devise ferait déborder l'identité, on la retire plutôt que de tout comprimer.
+    final texteGrand = MediaQuery.textScalerOf(context).scale(10) > 11.5;
 
-    return Container(
+    return ProtegeCouleurs(
+      child: Container(
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: Couleurs.degradeEntete,
@@ -132,22 +89,12 @@ class EnteteAccueil extends StatelessWidget {
                       children: [
                         GestureDetector(
                           onTap: surProfil,
-                          child: Container(
-                            width: 64,
-                            height: 64,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Couleurs.royal400, Couleurs.royal600],
-                              ),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.65), width: 2),
-                            ),
-                            child: Text(
-                              profil?.initiales ?? '?',
-                              style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                          child: ListenableBuilder(
+                            listenable: ContexteApp.of(context).photo,
+                            builder: (context, _) => AvatarProfil(
+                              initiales: profil?.initiales ?? '?',
+                              octets: ContexteApp.of(context).photo.octets,
+                              taille: 64,
                             ),
                           ),
                         ),
@@ -155,7 +102,7 @@ class EnteteAccueil extends StatelessWidget {
                         Expanded(
                           child: Padding(
                             // Place à la devise, à droite, sur la photo.
-                            padding: const EdgeInsets.only(right: 104),
+                            padding: EdgeInsets.only(right: texteGrand ? 0 : 104),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
@@ -190,7 +137,7 @@ class EnteteAccueil extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Positioned(right: 0, bottom: 0, child: _Devise()),
+                    if (!texteGrand) Positioned(right: 0, bottom: 0, child: _Devise()),
                   ],
                 ),
                 const SizedBox(height: Espaces.lg),
@@ -200,7 +147,7 @@ class EnteteAccueil extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -222,6 +169,38 @@ class _Devise extends StatelessWidget {
           decoration: BoxDecoration(color: Couleurs.royal300, borderRadius: BorderRadius.circular(2)),
         ),
       ],
+    );
+  }
+}
+
+/// Avatar rond : la photo de la personne si elle en a une, sinon ses initiales.
+class AvatarProfil extends StatelessWidget {
+  const AvatarProfil({super.key, required this.initiales, this.octets, this.taille = 64});
+
+  final String initiales;
+  final Uint8List? octets;
+  final double taille;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: taille,
+      height: taille,
+      alignment: Alignment.center,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Couleurs.royal400, Couleurs.royal600],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.65), width: 2),
+      ),
+      child: octets != null
+          ? Image.memory(octets!, width: taille, height: taille, fit: BoxFit.cover, gaplessPlayback: true)
+          : Text(initiales,
+              style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: taille * 0.34, fontWeight: FontWeight.w700)),
     );
   }
 }
@@ -492,7 +471,7 @@ class BanniereSeance extends StatelessWidget {
 
     return GestureDetector(
       onTap: surTap,
-      child: Container(
+      child: ProtegeCouleurs(child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: Couleurs.degradeEntete,
@@ -598,7 +577,7 @@ class BanniereSeance extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 }

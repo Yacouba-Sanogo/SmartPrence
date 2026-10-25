@@ -34,16 +34,19 @@ class OngletsEtudiant {
 }
 
 class ShellEtudiant extends StatefulWidget {
-  const ShellEtudiant({super.key, required this.auth});
+  const ShellEtudiant({super.key, required this.auth, this.ongletInitial = OngletsEtudiant.accueil});
 
   final AuthService auth;
+
+  /// Onglet ouvert au démarrage (aperçus et captures d'écran).
+  final int ongletInitial;
 
   @override
   State<ShellEtudiant> createState() => _ShellEtudiantState();
 }
 
 class _ShellEtudiantState extends State<ShellEtudiant> {
-  int _onglet = 0;
+  late int _onglet = widget.ongletInitial;
 
   @override
   Widget build(BuildContext context) {

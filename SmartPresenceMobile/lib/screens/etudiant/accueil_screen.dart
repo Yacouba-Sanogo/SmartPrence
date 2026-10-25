@@ -14,6 +14,7 @@ import '../../services/etudiant_service.dart';
 import '../../widgets/accueil_etudiant.dart';
 import '../../widgets/communs.dart';
 import '../../widgets/entete.dart';
+import '../../widgets/squelette.dart';
 import '../bibliotheque_screen.dart';
 import 'shell_etudiant.dart';
 import 'supports_screen.dart';
@@ -130,9 +131,9 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
           slivers: [
             SliverToBoxAdapter(child: _entete()),
             if (_chargement)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator(color: Couleurs.royal600)),
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(Espaces.lg, Espaces.lg, Espaces.lg, 130),
+                sliver: SliverToBoxAdapter(child: SqueletteAccueil()),
               )
             else if (_erreur != null)
               SliverFillRemaining(

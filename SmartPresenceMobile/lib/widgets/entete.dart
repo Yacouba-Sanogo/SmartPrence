@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
+import '../core/preferences_app.dart';
+import 'fond_campus.dart';
 
 /// En-tête dégradé qui ouvre chaque écran.
 ///
@@ -32,24 +34,15 @@ class EnteteDegrade extends StatelessWidget {
     // Pleine largeur par construction : dans une colonne, un en-tête dont le contenu est
     // étroit (un titre et un sous-titre) se contentait sinon de la largeur de ce texte, et
     // le dégradé n'habillait qu'une colonne au milieu de l'écran.
-    return Container(
+    return ProtegeCouleurs(
+      child: Container(
       width: double.infinity,
       decoration: BoxDecoration(gradient: degrade ?? Couleurs.degradeEntete),
       child: Stack(
         clipBehavior: Clip.hardEdge,
         children: [
-          // Disques translucides : ils cassent l'aplat sans introduire de motif, et
-          // restent lisibles sur toutes les tailles d'écran.
-          Positioned(
-            top: -56,
-            right: -38,
-            child: _disque(150, 0.07),
-          ),
-          Positioned(
-            top: hautStatut + 44,
-            right: 52,
-            child: _disque(92, 0.05),
-          ),
+          // La façade de l'école, très discrète : la même identité que l'accueil sur chaque écran.
+          const Positioned.fill(child: FondPhotoCampus(intensite: 0.55)),
           Padding(
             padding: (padding ??
                     const EdgeInsets.fromLTRB(
@@ -59,17 +52,8 @@ class EnteteDegrade extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
-
-  Widget _disque(double taille, double opacite) => Container(
-        width: taille,
-        height: taille,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: opacite),
-        ),
-      );
 }
 
 /// Ligne d'identité d'un en-tête : avatar, salutation, action à droite.

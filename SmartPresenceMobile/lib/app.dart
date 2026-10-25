@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/auth/auth_service.dart';
+import 'core/preferences_app.dart';
 import 'core/preferences_accueil.dart';
 import 'core/design/couleurs.dart';
 import 'core/design/theme.dart';
@@ -22,6 +23,8 @@ class ApplicationSmartPresence extends StatefulWidget {
 
 class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
   final _auth = AuthService();
+  final _prefs = PreferencesApp();
+  final _photo = PhotoProfil();
   final _preferences = const PreferencesAccueil();
 
   /// `null` tant que la préférence n'a pas été lue : afficher la présentation puis
@@ -31,11 +34,16 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
   @override
   void initState() {
     super.initState();
+    _prefs.charger();
+    _auth.addListener(_synchroniserPhoto);
     _auth.demarrer();
     _preferences.dejaVu().then((vu) {
       if (mounted) setState(() => _accueilVu = vu);
     });
   }
+
+  /// La photo suit le compte connecté : un autre compte ne voit jamais celle du précédent.
+  void _synchroniserPhoto() => _photo.pour(_auth.profil?.utilisateurId);
 
   Future<void> _passerLAccueil() async {
     await _preferences.marquerVu();
@@ -44,6 +52,9 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
 
   @override
   void dispose() {
+    _auth.removeListener(_synchroniserPhoto);
+    _prefs.dispose();
+    _photo.dispose();
     _auth.dispose();
     super.dispose();
   }
@@ -54,11 +65,34 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
       title: 'SmartPresence',
       debugShowCheckedModeBanner: false,
       theme: themeSmartPresence(),
-      builder: (context, child) => Stack(
-        children: [
-          if (child != null) child,
-          BandeauHorsLigne(etat: _auth.client.horsLigne),
-        ],
+      builder: (context, child) => ListenableBuilder(
+        listenable: Listenable.merge([_prefs, _photo]),
+        builder: (context, _) {
+          final media = MediaQuery.of(context);
+          final systemeSombre = media.platformBrightness == Brightness.dark;
+          final sombre = _prefs.theme == ModeTheme.sombre || (_prefs.theme == ModeTheme.systeme && systemeSombre);
+          Widget contenu = Stack(
+            children: [
+              if (child != null) child,
+              BandeauHorsLigne(etat: _auth.client.horsLigne),
+            ],
+          );
+          if (sombre) {
+            contenu = ColorFiltered(colorFilter: const ColorFilter.matrix(matriceSombre), child: contenu);
+          }
+          return ContexteApp(
+            preferences: _prefs,
+            photo: _photo,
+            sombre: sombre,
+            child: MediaQuery(
+              data: media.copyWith(
+                textScaler: TextScaler.linear(_prefs.echelleTexte),
+                disableAnimations: _prefs.animationsReduites || media.disableAnimations,
+              ),
+              child: contenu,
+            ),
+          );
+        },
       ),
       home: ListenableBuilder(
         listenable: _auth,

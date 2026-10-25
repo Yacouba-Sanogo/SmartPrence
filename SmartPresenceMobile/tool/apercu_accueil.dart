@@ -10,6 +10,7 @@ import 'package:http/testing.dart';
 import 'package:smartpresence_mobile/core/api/client_api.dart';
 import 'package:smartpresence_mobile/core/auth/auth_service.dart';
 import 'package:smartpresence_mobile/core/design/theme.dart';
+import 'package:smartpresence_mobile/core/preferences_app.dart';
 import 'package:smartpresence_mobile/screens/bibliotheque_screen.dart';
 import 'package:smartpresence_mobile/screens/connexion_screen.dart';
 import 'package:smartpresence_mobile/screens/etudiant/shell_etudiant.dart';
@@ -70,19 +71,68 @@ Object? _donnees(String chemin) {
     return {'content': contenu.reversed.toList(), 'page': 0, 'size': 20, 'totalElements': contenu.length, 'last': true};
   }
   if (chemin.endsWith('/moi/emploi-du-temps')) {
-    final debut = maintenant.add(const Duration(hours: 2, minutes: 15));
-    return [
-      {
-        'id': 's1',
-        'matiereLibelle': 'Bases de données relationnelles',
+    const cours = [
+      ['Bases de données relationnelles', 'Salle 204', 2, 0],
+      ['Algorithmique avancée', 'Amphi A', 1, 1],
+      ['Analyse mathématique', 'Amphi A', 3, 1],
+      ['Architecture des ordinateurs', 'Salle 101', 2, 2],
+      ['Anglais technique', 'Salle 204', 1, 3],
+      ['Réseaux et protocoles', 'Salle 305', 2, 4],
+    ];
+    final jourBase = DateTime(maintenant.year, maintenant.month, maintenant.day);
+    final seances = <Map<String, Object?>>[];
+    for (var i = 0; i < cours.length; i++) {
+      final c = cours[i];
+      final debut = i == 0
+          ? maintenant.add(const Duration(hours: 2, minutes: 15))
+          : jourBase.add(Duration(days: c[3] as int, hours: 8 + (i % 3) * 2));
+      seances.add({
+        'id': 's$i',
+        'matiereLibelle': c[0],
         'classeCode': 'L1-INFO-A',
         'debut': debut.toUtc().toIso8601String(),
-        'fin': debut.add(const Duration(hours: 2)).toUtc().toIso8601String(),
+        'fin': debut.add(Duration(hours: c[2] as int)).toUtc().toIso8601String(),
         'statut': 'PLANIFIEE',
-        'salleLibelle': 'Salle 204',
-      },
-    ];
+        'salleLibelle': c[1],
+      });
+    }
+    return seances;
   }
+  if (chemin.endsWith('/moi/bulletin')) {
+    Map<String, Object?> matiere(int id, String libelle, double moyenne, List<List<Object>> notes) => {
+          'matiereId': id,
+          'matiereCode': libelle.substring(0, 4).toUpperCase(),
+          'matiereLibelle': libelle,
+          'coefficient': 3,
+          'moyenne': moyenne,
+          'notes': [
+            for (final n in notes)
+              {
+                'id': 'n$id${n[0]}',
+                'valeur': n[1],
+                'coefficient': 1,
+                'type': n[2],
+                'libelle': n[0],
+                'dateEvaluation': _jour(maintenant.subtract(Duration(days: 20 + id))),
+                'matiereId': id,
+                'matiereLibelle': libelle,
+                'statut': 'VALIDEE',
+              },
+          ],
+        };
+    return {
+      'nombreNotes': 7,
+      'moyenneGenerale': 14.2,
+      'classeLibelle': 'Licence 1 Informatique',
+      'matieres': [
+        matiere(1, 'Algorithmique', 16.0, [['Devoir 1', 15.5, 'DEVOIR'], ['Examen', 16.5, 'EXAMEN']]),
+        matiere(2, 'Analyse mathématique', 12.5, [['Devoir 1', 11.0, 'DEVOIR'], ['Examen', 14.0, 'EXAMEN']]),
+        matiere(3, 'Bases de données', 14.0, [['TP noté', 14.0, 'TP']]),
+        matiere(4, 'Anglais technique', 9.0, [['Devoir 1', 9.0, 'DEVOIR'], ['Oral', 9.0, 'ORAL']]),
+      ],
+    };
+  }
+  if (chemin.endsWith('/moi/releve')) return null;
   if (chemin.endsWith('/notifications')) {
     return [
       {
@@ -151,11 +201,32 @@ Future<void> main() async {
     'connexion' => ConnexionScreen(auth: AuthService(client: ClientApi(client: client)), surRetour: () {}),
     'landing' => LandingScreen(auth: auth, surCommencer: () {}),
     'bibliotheque' => BibliothequeScreen(auth: auth),
+    'cours' => ShellEtudiant(auth: auth, ongletInitial: OngletsEtudiant.emploiDuTemps),
+    'releves' => ShellEtudiant(auth: auth, ongletInitial: OngletsEtudiant.releves),
+    'notes' => ShellEtudiant(auth: auth, ongletInitial: OngletsEtudiant.notes),
+    'profil' => ShellEtudiant(auth: auth, ongletInitial: OngletsEtudiant.profil),
+    'empreinte' => ShellEtudiant(auth: auth, ongletInitial: OngletsEtudiant.empreinte),
     _ => ShellEtudiant(auth: auth),
   };
+  final prefs = PreferencesApp();
+  final photo = PhotoProfil();
+  final sombre = Uri.base.queryParameters['sombre'] == '1';
+  final texte = double.tryParse(Uri.base.queryParameters['texte'] ?? '') ?? 1.0;
+  await prefs.definirTheme(sombre ? ModeTheme.sombre : ModeTheme.clair);
+  await prefs.definirEchelleTexte(texte);
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: themeSmartPresence(),
+    builder: (context, child) {
+      Widget contenu = child ?? const SizedBox.shrink();
+      if (sombre) contenu = ColorFiltered(colorFilter: const ColorFilter.matrix(matriceSombre), child: contenu);
+      return ContexteApp(
+        preferences: prefs,
+        photo: photo,
+        sombre: sombre,
+        child: MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(texte)), child: contenu),
+      );
+    },
     home: page,
   ));
 }

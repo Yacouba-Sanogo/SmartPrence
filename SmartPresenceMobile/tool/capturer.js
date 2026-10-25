@@ -54,8 +54,14 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
   await cmd('Page.enable');
   await cmd('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+  // Premier chargement à froid : on le passe pour que la première capture soit prête.
+  await cmd('Page.navigate', { url: base + '/?ecran=accueil' });
+  await attendre(12000);
   for (const ecran of ecrans) {
-    await cmd('Page.navigate', { url: `${base}/?ecran=${ecran.replace('-bas', '')}` });
+    // Suffixes : -bas (défile), -sombre (mode sombre), -grand (texte très grand).
+    const nom = ecran.replace('-bas', '').replace('-sombre', '').replace('-grand', '');
+    const options = (ecran.includes('-sombre') ? '&sombre=1' : '') + (ecran.includes('-grand') ? '&texte=1.3' : '');
+    await cmd('Page.navigate', { url: `${base}/?ecran=${nom}${options}` });
     await attendre(9000);
     const defiler = Number(process.env.DEFILER || 0);
     if (defiler > 0 && ecran.includes('-bas')) {

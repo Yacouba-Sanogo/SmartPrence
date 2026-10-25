@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/design/couleurs.dart';
 import '../core/design/typographie.dart';
+import '../core/preferences_app.dart';
 
 /// Un onglet de la barre flottante.
 class Onglet {
@@ -129,8 +130,12 @@ class NavigationCentrale extends StatelessWidget {
   Widget build(BuildContext context) {
     final centreActif = indexActif == indexCentre;
     final basSysteme = MediaQuery.of(context).padding.bottom;
+    final sombre = ContexteApp.maybeOf(context)?.sombre == true;
 
-    return Padding(
+    // La barre garde sa taille : un texte très agrandi ne doit pas faire chevaucher les libellés.
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1)),
+      child: Padding(
       padding: EdgeInsets.fromLTRB(Espaces.lg, 0, Espaces.lg, basSysteme + Espaces.sm),
       child: SizedBox(
         height: _hauteurBarre + _saillie,
@@ -148,9 +153,9 @@ class NavigationCentrale extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  for (final (index, onglet) in gauche) Expanded(child: _bouton(onglet, index == indexActif, index)),
+                  for (final (index, onglet) in gauche) Expanded(child: _bouton(context, onglet, index == indexActif, index)),
                   Expanded(child: _libelleCentre(centreActif)),
-                  for (final (index, onglet) in droite) Expanded(child: _bouton(onglet, index == indexActif, index)),
+                  for (final (index, onglet) in droite) Expanded(child: _bouton(context, onglet, index == indexActif, index)),
                 ],
               ),
             ),
@@ -160,15 +165,18 @@ class NavigationCentrale extends StatelessWidget {
                 button: true,
                 label: centre.libelle,
                 child: GestureDetector(
-                  onTap: () => surSelection(indexCentre),
-                  child: AnimatedContainer(
+                  onTap: () {
+                    ContexteApp.maybeOf(context)?.preferences.vibrer();
+                    surSelection(indexCentre);
+                  },
+                  child: ProtegeCouleurs(child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     width: _tailleBouton,
                     height: _tailleBouton,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: Couleurs.degradeEntete,
-                      border: Border.all(color: Couleurs.fond, width: 4),
+                      border: Border.all(color: sombre ? const Color(0xFF05070C) : Couleurs.fond, width: 4),
                       boxShadow: centreActif ? Couleurs.ombreRoyal : Couleurs.ombreCarte,
                     ),
                     child: Icon(
@@ -176,14 +184,14 @@ class NavigationCentrale extends StatelessWidget {
                       color: Colors.white,
                       size: 29,
                     ),
-                  ),
+                  )),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// Libellé du bouton central, posé sur la même ligne de base que ceux des onglets.
@@ -210,7 +218,7 @@ class NavigationCentrale extends StatelessWidget {
     );
   }
 
-  Widget _bouton(Onglet onglet, bool actif, int index) {
+  Widget _bouton(BuildContext context, Onglet onglet, bool actif, int index) {
     final teinte = actif ? Couleurs.royal600 : Couleurs.encreDiscrete;
 
     return Semantics(
@@ -218,7 +226,10 @@ class NavigationCentrale extends StatelessWidget {
       selected: actif,
       label: onglet.libelle,
       child: GestureDetector(
-        onTap: () => surSelection(index),
+        onTap: () {
+          ContexteApp.maybeOf(context)?.preferences.vibrer();
+          surSelection(index);
+        },
         behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -12,6 +12,8 @@ import '../services/fichier/choix_fichier.dart';
 import '../widgets/communs.dart';
 import '../widgets/entete.dart';
 import '../widgets/accueil_etudiant.dart';
+import '../widgets/rayonnages.dart';
+import '../core/preferences_app.dart';
 import '../widgets/formulaire.dart';
 
 enum _Onglet { documents, livres, emprunts, depots }
@@ -159,7 +161,7 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
       backgroundColor: Couleurs.fond,
       body: Column(
         children: [
-          Container(
+          ProtegeCouleurs(child: Container(
             width: double.infinity,
             clipBehavior: Clip.antiAlias,
             decoration: const BoxDecoration(
@@ -168,10 +170,10 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
             ),
             child: Stack(
               children: [
-                const Positioned.fill(child: FondPhotoCampus()),
+                const Positioned.fill(child: FondRayonnages()),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                      Espaces.sm, MediaQuery.of(context).padding.top + Espaces.sm, Espaces.lg, Espaces.xl),
+                      Espaces.sm, MediaQuery.of(context).padding.top + Espaces.sm, Espaces.lg, Espaces.xxl + 14),
                   child: Row(
                     children: [
                       ActionEntete(icone: Icons.arrow_back_rounded, surTap: () => Navigator.of(context).maybePop()),
@@ -194,7 +196,7 @@ class _BibliothequeScreenState extends State<BibliothequeScreen> {
                 ),
               ],
             ),
-          ),
+          )),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(top: Espaces.md),
