@@ -97,12 +97,12 @@ class NavigationFlottante extends StatelessWidget {
   }
 }
 
-/// Barre de navigation à bouton central surélevé.
+/// Barre de navigation collée au bas de l'écran, avec un bouton central surélevé.
 ///
-/// Cinq emplacements de même largeur : deux onglets, le bouton d'empreinte, deux onglets.
-/// La symétrie vient de là, pas d'un espace vide ajusté à l'œil. Tous les libellés
-/// partagent la même ligne de base, celui du bouton central compris, et l'onglet actif
-/// se reconnaît à sa pastille bleue et à son libellé en gras.
+/// Elle occupe toute la largeur, coins hauts arrondis, comme sur la maquette : quatre onglets
+/// de même largeur autour du bouton d'empreinte, qui dépasse de la barre. L'onglet actif se
+/// reconnaît à sa couleur, à son libellé en gras et au trait bleu sous lui. Le bouton central
+/// n'a pas de libellé : son icône suffit, et un libellé de plus alourdirait la barre.
 class NavigationCentrale extends StatelessWidget {
   const NavigationCentrale({
     super.key,
@@ -122,9 +122,9 @@ class NavigationCentrale extends StatelessWidget {
   final int indexCentre;
   final ValueChanged<int> surSelection;
 
-  static const double _hauteurBarre = 68;
-  static const double _tailleBouton = 60;
-  static const double _saillie = 22;
+  static const double _hauteurBarre = 60;
+  static const double _tailleBouton = 58;
+  static const double _saillie = 24;
 
   @override
   Widget build(BuildContext context) {
@@ -135,26 +135,24 @@ class NavigationCentrale extends StatelessWidget {
     // La barre garde sa taille : un texte très agrandi ne doit pas faire chevaucher les libellés.
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1)),
-      child: Padding(
-      padding: EdgeInsets.fromLTRB(Espaces.lg, 0, Espaces.lg, basSysteme + Espaces.sm),
       child: SizedBox(
-        height: _hauteurBarre + _saillie,
+        height: _hauteurBarre + _saillie + basSysteme,
         child: Stack(
           alignment: Alignment.bottomCenter,
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: _hauteurBarre,
+              height: _hauteurBarre + basSysteme,
+              padding: EdgeInsets.only(bottom: basSysteme),
               decoration: BoxDecoration(
                 color: Couleurs.carte,
-                borderRadius: BorderRadius.circular(Rayons.bloc + 4),
-                border: Border.all(color: Couleurs.traitLeger),
-                boxShadow: Couleurs.ombreFlottante,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                boxShadow: const [BoxShadow(color: Color(0x1A0F1729), blurRadius: 18, offset: Offset(0, -4))],
               ),
               child: Row(
                 children: [
                   for (final (index, onglet) in gauche) Expanded(child: _bouton(context, onglet, index == indexActif, index)),
-                  Expanded(child: _libelleCentre(centreActif)),
+                  const Expanded(child: SizedBox()),
                   for (final (index, onglet) in droite) Expanded(child: _bouton(context, onglet, index == indexActif, index)),
                 ],
               ),
@@ -163,56 +161,44 @@ class NavigationCentrale extends StatelessWidget {
               top: 0,
               child: Semantics(
                 button: true,
+                selected: centreActif,
                 label: centre.libelle,
                 child: GestureDetector(
                   onTap: () {
                     ContexteApp.maybeOf(context)?.preferences.vibrer();
                     surSelection(indexCentre);
                   },
-                  child: ProtegeCouleurs(child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    width: _tailleBouton,
-                    height: _tailleBouton,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: Couleurs.degradeEntete,
-                      border: Border.all(color: sombre ? const Color(0xFF05070C) : Couleurs.fond, width: 4),
-                      boxShadow: centreActif ? Couleurs.ombreRoyal : Couleurs.ombreCarte,
+                  child: ProtegeCouleurs(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      width: _tailleBouton + 10,
+                      height: _tailleBouton + 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: sombre ? const Color(0xFF05070C) : Couleurs.carte,
+                        boxShadow: const [BoxShadow(color: Color(0x1F0F1729), blurRadius: 10, offset: Offset(0, -2))],
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: _tailleBouton,
+                        height: _tailleBouton,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: Couleurs.degradeEntete,
+                          boxShadow: centreActif ? Couleurs.ombreRoyal : Couleurs.ombreCarte,
+                        ),
+                        child: Icon(
+                          centreActif ? centre.iconeActive : centre.icone,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
                     ),
-                    child: Icon(
-                      centreActif ? centre.iconeActive : centre.icone,
-                      color: Colors.white,
-                      size: 29,
-                    ),
-                  )),
+                  ),
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    ));
-  }
-
-  /// Libellé du bouton central, posé sur la même ligne de base que ceux des onglets.
-  Widget _libelleCentre(bool actif) {
-    return GestureDetector(
-      onTap: () => surSelection(indexCentre),
-      behavior: HitTestBehavior.opaque,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 9),
-          child: Text(
-            centre.libelle,
-            style: Typo.legende.copyWith(
-              fontSize: 10,
-              height: 1.1,
-              fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
-              color: actif ? Couleurs.royal600 : Couleurs.encreDiscrete,
-            ),
-            maxLines: 1,
-          ),
         ),
       ),
     );
@@ -234,28 +220,26 @@ class NavigationCentrale extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              width: 46,
-              height: 28,
-              decoration: BoxDecoration(
-                color: actif ? Couleurs.royal50 : Colors.transparent,
-                borderRadius: BorderRadius.circular(Rayons.pilule),
-              ),
-              child: Icon(actif ? onglet.iconeActive : onglet.icone, size: 22, color: teinte),
-            ),
-            const SizedBox(height: 3),
+            Icon(actif ? onglet.iconeActive : onglet.icone, size: 24, color: teinte),
+            const SizedBox(height: 2),
             Text(
               onglet.libelle,
               style: Typo.legende.copyWith(
-                fontSize: 10,
+                fontSize: 10.5,
                 height: 1.1,
                 color: teinte,
                 fontWeight: actif ? FontWeight.w700 : FontWeight.w500,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              width: actif ? 26 : 0,
+              height: 3,
+              decoration: BoxDecoration(color: Couleurs.royal600, borderRadius: BorderRadius.circular(2)),
             ),
           ],
         ),

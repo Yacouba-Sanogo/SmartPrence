@@ -97,26 +97,6 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
     return null;
   }
 
-  /// État de chaque jour ouvré de la semaine courante.
-  List<({String lettre, EtatJour etat})> get _semaine {
-    const lettres = ['L', 'M', 'M', 'J', 'V'];
-    final aujourdhui = DateTime.now();
-    final lundi = aujourdhui.subtract(Duration(days: aujourdhui.weekday - 1));
-
-    return List.generate(5, (i) {
-      final jour = lundi.add(Duration(days: i));
-      if (jour.isAfter(aujourdhui) && !Dates.memeJour(jour, aujourdhui)) {
-        return (lettre: lettres[i], etat: EtatJour.aVenir);
-      }
-      final releves = _derniers.where((r) => Dates.memeJour(r.date, jour));
-      if (releves.isEmpty) {
-        return (lettre: lettres[i], etat: EtatJour.absent);
-      }
-      final enRetard = releves.any((r) => r.statut == StatutPresence.retard);
-      return (lettre: lettres[i], etat: enRetard ? EtatJour.retard : EtatJour.present);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,7 +112,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
             SliverToBoxAdapter(child: _entete()),
             if (_chargement)
               const SliverPadding(
-                padding: EdgeInsets.fromLTRB(Espaces.lg, Espaces.lg, Espaces.lg, 130),
+                padding: EdgeInsets.fromLTRB(Espaces.lg, Espaces.md + 2, Espaces.lg, 110),
                 sliver: SliverToBoxAdapter(child: SqueletteAccueil()),
               )
             else if (_erreur != null)
@@ -150,7 +130,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
             else
               SliverPadding(
                 // Marge basse : la barre de navigation flotte au-dessus du contenu.
-                padding: const EdgeInsets.fromLTRB(Espaces.lg, Espaces.lg, Espaces.lg, 130),
+                padding: const EdgeInsets.fromLTRB(Espaces.lg, Espaces.md + 2, Espaces.lg, 110),
                 sliver: SliverList.list(children: _contenu()),
               ),
           ],
@@ -209,20 +189,20 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
 
   List<Widget> _contenu() {
     return [
-      CarteAssiduite(assiduite: _assiduite, semaine: _semaine),
+      CarteAssiduite(assiduite: _assiduite),
       if (!_assiduite.sansHistorique) ...[
         const SizedBox(height: Espaces.sm + 2),
         _statistiques(),
       ],
-      const SizedBox(height: Espaces.md + 2),
+      const SizedBox(height: Espaces.sm + 2),
       BanniereSeance(
         seance: _prochaine,
         surTap: () => widget.surNaviguer?.call(OngletsEtudiant.emploiDuTemps),
       ),
-      const SizedBox(height: Espaces.xl + 4),
+      const SizedBox(height: Espaces.lg + 2),
       const TitreSection('Accès rapide'),
       _raccourcis(),
-      const SizedBox(height: Espaces.xl + 4),
+      const SizedBox(height: Espaces.lg + 2),
       TitreSection(
         'Activité récente',
         icone: Icons.history_rounded,
@@ -230,7 +210,7 @@ class _AccueilEtudiantScreenState extends State<AccueilEtudiantScreen> {
         surAction: _ouvrirNotifications,
       ),
       ActiviteRecente(notifications: _notifications, surTap: _ouvrirNotifications),
-      const SizedBox(height: Espaces.xl + 4),
+      const SizedBox(height: Espaces.lg + 2),
       _derniersReleves(),
     ];
   }

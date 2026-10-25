@@ -55,7 +55,7 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
   await cmd('Page.enable');
   await cmd('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
   // Premier chargement à froid : on le passe pour que la première capture soit prête.
-  await cmd('Page.navigate', { url: base + '/?ecran=accueil' });
+  await cmd('Page.navigate', { url: base + '/?ecran=chauffe' });
   await attendre(12000);
   for (const ecran of ecrans) {
     // Suffixes : -bas (défile), -sombre (mode sombre), -grand (texte très grand).

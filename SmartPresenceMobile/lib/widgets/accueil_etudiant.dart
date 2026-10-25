@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../core/dates.dart';
 import '../core/design/couleurs.dart';
@@ -13,15 +12,15 @@ import '../models/seance.dart';
 import '../models/statistiques.dart';
 import 'anneau.dart';
 import 'fond_campus.dart';
+import 'fond_livres.dart';
 import 'communs.dart';
 import 'logo_enetp.dart';
 
-/// En-tête de l'accueil étudiant.
+/// En-tête de l'accueil étudiant, volontairement sobre.
 ///
-/// La photo du bâtiment de l'école, teintée de bleu royal, occupe le fond : à gauche elle
-/// s'efface sous le dégradé pour que le texte reste lisible, à droite elle reste visible
-/// avec la devise. Trois étages : l'établissement et les notifications, la personne, puis
-/// le dernier passage. Les coins bas arrondis ferment le bloc sans chevaucher le contenu.
+/// Trois lignes seulement : l'école et la cloche, la personne, le dernier passage. La photo
+/// du bâtiment reste en fond, discrète ; rien d'autre ne s'y ajoute. Les coins bas arrondis
+/// ferment le bloc sans chevaucher le contenu.
 class EnteteAccueil extends StatelessWidget {
   const EnteteAccueil({
     super.key,
@@ -44,131 +43,96 @@ class EnteteAccueil extends StatelessWidget {
   Widget build(BuildContext context) {
     final haut = MediaQuery.of(context).padding.top;
     final classe = profil?.classeLibelle ?? profil?.classeCode;
-    // Texte agrandi : la devise ferait déborder l'identité, on la retire plutôt que de tout comprimer.
-    final texteGrand = MediaQuery.textScalerOf(context).scale(10) > 11.5;
 
     return ProtegeCouleurs(
       child: Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: Couleurs.degradeEntete,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          const Positioned.fill(child: FondPhotoCampus()),
-          Padding(
-            padding: EdgeInsets.fromLTRB(Espaces.xl, haut + Espaces.md, Espaces.xl, Espaces.lg + 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    const LogoEnetp(taille: 30, plaque: true),
-                    const SizedBox(width: Espaces.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('ENETP',
-                              style: Typo.libelle.copyWith(
-                                  color: Colors.white, fontSize: 16, letterSpacing: 1.2, fontWeight: FontWeight.w700, height: 1.1)),
-                          Text('École Nationale d’Économie\net de Technique de Planification',
-                              style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 8.5, height: 1.25)),
-                        ],
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: Couleurs.degradeEntete,
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            const Positioned.fill(child: FondPhotoCampus(intensite: 0.8)),
+            Padding(
+              padding: EdgeInsets.fromLTRB(Espaces.lg + 2, haut + Espaces.sm + 2, Espaces.lg + 2, Espaces.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const LogoEnetp(taille: 28, plaque: true),
+                      const SizedBox(width: Espaces.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('ENETP',
+                                style: Typo.libelle.copyWith(
+                                    color: Colors.white, fontSize: 15, letterSpacing: 1.1, fontWeight: FontWeight.w700, height: 1.1)),
+                            Text('École Nationale d’Économie et de\nTechnique de Planification',
+                                style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 8, height: 1.2)),
+                          ],
+                        ),
                       ),
-                    ),
-                    _BoutonCloche(nonLues: nonLues, surTap: surNotifications),
-                  ],
-                ),
-                const SizedBox(height: Espaces.lg),
-                Stack(
-                  children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: surProfil,
-                          child: ListenableBuilder(
-                            listenable: ContexteApp.of(context).photo,
-                            builder: (context, _) => AvatarProfil(
-                              initiales: profil?.initiales ?? '?',
-                              octets: ContexteApp.of(context).photo.octets,
-                              taille: 64,
-                            ),
+                      _BoutonCloche(nonLues: nonLues, surTap: surNotifications),
+                    ],
+                  ),
+                  const SizedBox(height: Espaces.md),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: surProfil,
+                        child: ListenableBuilder(
+                          listenable: ContexteApp.of(context).photo,
+                          builder: (context, _) => AvatarProfil(
+                            initiales: profil?.initiales ?? '?',
+                            octets: ContexteApp.of(context).photo.octets,
+                            taille: 50,
                           ),
                         ),
-                        const SizedBox(width: Espaces.md + 2),
-                        Expanded(
-                          child: Padding(
-                            // Place à la devise, à droite, sur la photo.
-                            padding: EdgeInsets.only(right: texteGrand ? 0 : 104),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Bonjour,',
-                                    style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
-                                Text(
-                                  profil?.nomComplet.isNotEmpty == true ? profil!.nomComplet : 'Étudiant',
-                                  style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 21, height: 1.18),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (classe != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 5),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.school_rounded, size: 15, color: Colors.white.withValues(alpha: 0.9)),
-                                        const SizedBox(width: 6),
-                                        Flexible(
-                                          child: Text(classe,
-                                              style: Typo.legende.copyWith(color: Colors.white, fontSize: 12),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis),
-                                        ),
-                                      ],
-                                    ),
+                      ),
+                      const SizedBox(width: Espaces.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Bonjour,',
+                                style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                            Text(
+                              profil?.nomComplet.isNotEmpty == true ? profil!.nomComplet : 'Étudiant',
+                              style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 19, height: 1.15),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (classe != null)
+                              Row(
+                                children: [
+                                  Icon(Icons.school_rounded, size: 14, color: Colors.white.withValues(alpha: 0.9)),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(classe,
+                                        style: Typo.legende.copyWith(color: Colors.white, fontSize: 11.5),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
                                   ),
-                              ],
-                            ),
-                          ),
+                                ],
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
-                    if (!texteGrand) Positioned(right: 0, bottom: 0, child: _Devise()),
-                  ],
-                ),
-                const SizedBox(height: Espaces.lg),
-                passage,
-              ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Espaces.md),
+                  passage,
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
-  }
-}
-
-class _Devise extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Apprendre\naujourd’hui,\nconstruire demain',
-          style: GoogleFonts.caveat(color: Colors.white, fontSize: 16, height: 1.05, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          width: 92,
-          height: 2.5,
-          decoration: BoxDecoration(color: Couleurs.royal300, borderRadius: BorderRadius.circular(2)),
-        ),
-      ],
     );
   }
 }
@@ -257,12 +221,11 @@ class _BoutonCloche extends StatelessWidget {
   }
 }
 
-/// Carte d'assiduité : l'anneau, l'appréciation en une phrase, la semaine en cinq points.
+/// Carte d'assiduité : l'anneau, l'appréciation en une phrase, et un mot d'encouragement.
 class CarteAssiduite extends StatelessWidget {
-  const CarteAssiduite({super.key, required this.assiduite, required this.semaine});
+  const CarteAssiduite({super.key, required this.assiduite});
 
   final Assiduite assiduite;
-  final List<({String lettre, EtatJour etat})> semaine;
 
   String get _appreciation {
     final t = assiduite.taux;
@@ -283,56 +246,46 @@ class CarteAssiduite extends StatelessWidget {
     }
 
     return Carte(
-      padding: const EdgeInsets.all(Espaces.lg),
+      rayon: Rayons.carte - 4,
+      padding: const EdgeInsets.symmetric(horizontal: Espaces.md + 2, vertical: Espaces.md),
       enfant: Row(
         children: [
-          Anneau(valeur: assiduite.taux, taille: 88, epaisseur: 10, couleur: Couleurs.royal600),
-          const SizedBox(width: Espaces.lg + 2),
+          Anneau(valeur: assiduite.taux, taille: 66, epaisseur: 7, couleur: Couleurs.royal600),
+          const SizedBox(width: Espaces.md + 2),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(_appreciation, style: Typo.libelle.copyWith(fontSize: 15.5))),
-                    if (assiduite.taux >= 90)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(Rayons.pilule)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.star_rounded, size: 13, color: Couleurs.royal600),
-                            const SizedBox(width: 3),
-                            Text('Bravo !', style: Typo.legende.copyWith(color: Couleurs.royal600, fontWeight: FontWeight.w700, fontSize: 11)),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 3),
+                Text(_appreciation, style: Typo.libelle.copyWith(fontSize: 15)),
+                const SizedBox(height: 2),
                 Text('Vous êtes présent(e) à ${assiduite.taux.round()} % des séances.',
-                    style: Typo.corpsAttenue.copyWith(fontSize: 12.5)),
-                const SizedBox(height: Espaces.md),
-                Row(
-                  children: [
-                    for (final jour in semaine) ...[
-                      PointJour(lettre: jour.lettre, etat: jour.etat),
-                      const SizedBox(width: 7),
-                    ],
-                  ],
-                ),
+                    style: Typo.corpsAttenue.copyWith(fontSize: 12, height: 1.35)),
               ],
             ),
           ),
+          if (assiduite.taux >= 90) ...[
+            const SizedBox(width: Espaces.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(Rayons.pilule)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.star_rounded, size: 13, color: Couleurs.royal600),
+                  const SizedBox(width: 3),
+                  Text('Bravo !', style: Typo.legende.copyWith(color: Couleurs.royal600, fontWeight: FontWeight.w700, fontSize: 11)),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// Une statistique d'assiduité : icône, libellé, valeur, volume total et mouvement de la semaine.
+/// Une statistique d'assiduité : icône, libellé et valeur côte à côte, volume total, mouvement de la semaine.
 class CarteStatistique extends StatelessWidget {
   const CarteStatistique({
     super.key,
@@ -359,8 +312,8 @@ class CarteStatistique extends StatelessWidget {
   Widget build(BuildContext context) {
     final calme = cetteSemaine == 0;
     return Carte(
-      rayon: Rayons.carte - 2,
-      padding: const EdgeInsets.fromLTRB(Espaces.md, Espaces.md + 2, Espaces.md, Espaces.md),
+      rayon: Rayons.carte - 6,
+      padding: const EdgeInsets.fromLTRB(Espaces.sm + 2, Espaces.md - 2, Espaces.sm + 2, Espaces.sm + 2),
       enfant: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -368,35 +321,40 @@ class CarteStatistique extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(color: fond, shape: BoxShape.circle),
-                child: Icon(icone, size: 16, color: teinte),
+                child: Icon(icone, size: 15, color: teinte),
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 6),
               Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(libelle, style: Typo.libelle.copyWith(fontSize: 12.5), maxLines: 1),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(libelle, style: Typo.libelle.copyWith(fontSize: 11.5, height: 1.1), maxLines: 1),
+                    ),
+                    Text('$valeur', style: Typo.mono(20, graisse: FontWeight.w600, couleur: Couleurs.encre).copyWith(height: 1.1)),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: Espaces.md),
-          Text('$valeur', style: Typo.mono(26, graisse: FontWeight.w600, couleur: Couleurs.encre)),
-          Text('sur $total séances', style: Typo.legendePale.copyWith(fontSize: 10.5)),
-          const SizedBox(height: Espaces.sm + 2),
+          const SizedBox(height: 4),
+          Text('sur $total séances', style: Typo.legendePale.copyWith(fontSize: 10)),
+          const SizedBox(height: 6),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
               color: calme ? Couleurs.traitPale : fond,
-              borderRadius: BorderRadius.circular(Rayons.sm - 2),
+              borderRadius: BorderRadius.circular(Rayons.sm - 3),
             ),
             child: Row(
               children: [
-                Icon(calme ? Icons.remove_rounded : Icons.arrow_upward_rounded, size: 13, color: calme ? Couleurs.encreDiscrete : teinte),
+                Icon(calme ? Icons.remove_rounded : Icons.arrow_upward_rounded, size: 12, color: calme ? Couleurs.encreDiscrete : teinte),
                 const SizedBox(width: 3),
                 Expanded(
                   child: FittedBox(
@@ -404,7 +362,7 @@ class CarteStatistique extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       calme ? 'aucun cette semaine' : '+$cetteSemaine cette semaine',
-                      style: Typo.legende.copyWith(fontSize: 10.5, fontWeight: FontWeight.w600, color: calme ? Couleurs.encreDiscrete : teinte),
+                      style: Typo.legende.copyWith(fontSize: 10, fontWeight: FontWeight.w600, color: calme ? Couleurs.encreDiscrete : teinte),
                       maxLines: 1,
                     ),
                   ),
@@ -418,49 +376,36 @@ class CarteStatistique extends StatelessWidget {
   }
 }
 
-/// Bannière de la prochaine séance : l'information la plus utile de la journée.
+/// Bannière de la prochaine séance : compacte, sur un fond de livres et d'ordinateur portable.
 class BanniereSeance extends StatelessWidget {
   const BanniereSeance({super.key, required this.seance, this.surTap});
 
   final Seance? seance;
   final VoidCallback? surTap;
 
-  /// « En cours », « Dans 2 h 30 », « Demain »… ce qu'on dirait à voix haute.
-  String _echeance(Seance s) {
-    if (s.seDerouleMaintenant) return 'En cours';
-    final reste = s.debut.difference(DateTime.now());
-    if (reste.inMinutes < 60) return 'Dans ${reste.inMinutes.clamp(1, 59)} min';
-    if (Dates.memeJour(s.debut, DateTime.now())) {
-      final h = reste.inHours;
-      final m = reste.inMinutes % 60;
-      return m == 0 ? 'Dans $h h' : 'Dans $h h ${m.toString().padLeft(2, '0')}';
-    }
-    return Dates.relatif(s.debut);
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = seance;
     if (s == null) {
       return Carte(
-        padding: const EdgeInsets.all(Espaces.lg),
+        rayon: Rayons.carte - 4,
+        padding: const EdgeInsets.all(Espaces.md + 2),
         enfant: Row(
           children: [
             Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(Rayons.md)),
-              child: const Icon(Icons.event_available_rounded, size: 24, color: Couleurs.royal500),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(Rayons.md - 2)),
+              child: const Icon(Icons.event_available_rounded, size: 21, color: Couleurs.royal500),
             ),
-            const SizedBox(width: Espaces.md + 2),
+            const SizedBox(width: Espaces.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Aucune séance à venir', style: Typo.libelle.copyWith(fontSize: 14)),
-                  const SizedBox(height: 2),
+                  Text('Aucune séance à venir', style: Typo.libelle.copyWith(fontSize: 13.5)),
                   Text('Votre emploi du temps est libre sur les sept prochains jours.',
-                      style: Typo.corpsAttenue.copyWith(fontSize: 12.5)),
+                      style: Typo.corpsAttenue.copyWith(fontSize: 12)),
                 ],
               ),
             ),
@@ -471,118 +416,98 @@ class BanniereSeance extends StatelessWidget {
 
     return GestureDetector(
       onTap: surTap,
-      child: ProtegeCouleurs(child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          gradient: Couleurs.degradeEntete,
-          borderRadius: BorderRadius.circular(Rayons.carte),
-          boxShadow: Couleurs.ombreRoyal,
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -30,
-              top: -40,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.06)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(Espaces.lg + 2),
-              child: IntrinsicHeight(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(Rayons.md),
+      child: ProtegeCouleurs(
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            gradient: Couleurs.degradeEntete,
+            borderRadius: BorderRadius.circular(Rayons.carte - 4),
+            boxShadow: Couleurs.ombreRoyal,
+          ),
+          child: Stack(
+            children: [
+              const Positioned.fill(child: FondLivresOrdinateur()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Espaces.md + 2, vertical: Espaces.md),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(Rayons.sm),
+                        ),
+                        child: const Icon(Icons.calendar_month_rounded, size: 21, color: Colors.white),
                       ),
-                      child: const Icon(Icons.calendar_month_rounded, size: 26, color: Colors.white),
-                    ),
-                    const SizedBox(width: Espaces.md),
-                    Container(width: 1, color: Colors.white.withValues(alpha: 0.22)),
-                    const SizedBox(width: Espaces.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Text('PROCHAINE SÉANCE',
-                                  style: Typo.legende.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.7),
-                                      fontSize: 10,
-                                      letterSpacing: 1.0,
-                                      fontWeight: FontWeight.w600)),
-                              const SizedBox(width: Espaces.sm),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: s.seDerouleMaintenant ? Couleurs.succesVif : Colors.white.withValues(alpha: 0.18),
-                                  borderRadius: BorderRadius.circular(Rayons.pilule),
+                      const SizedBox(width: Espaces.md - 2),
+                      Container(width: 1, color: Colors.white.withValues(alpha: 0.22)),
+                      const SizedBox(width: Espaces.md - 2),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('PROCHAINE SÉANCE',
+                                style: Typo.legende.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 9,
+                                    letterSpacing: 0.9,
+                                    fontWeight: FontWeight.w600)),
+                            Text(s.matiere,
+                                style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 14.5, height: 1.2),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Icon(Icons.schedule_rounded, size: 12, color: Colors.white.withValues(alpha: 0.8)),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text('${Dates.relatif(s.debut)} · ${s.creneau}',
+                                      style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.92), fontSize: 11),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis),
                                 ),
-                                child: Text(_echeance(s),
-                                    style: Typo.legende.copyWith(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(s.matiere,
-                              style: Typo.titreEcran.copyWith(color: Colors.white, fontSize: 17, height: 1.2),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(Icons.schedule_rounded, size: 13, color: Colors.white.withValues(alpha: 0.8)),
-                              const SizedBox(width: 4),
-                              Text('${Dates.relatif(s.debut)} · ${s.creneau}',
-                                  style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.92), fontSize: 11.5)),
-                            ],
-                          ),
-                          if (s.salle != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 3),
-                              child: Row(
+                              ],
+                            ),
+                            if (s.salle != null)
+                              Row(
                                 children: [
-                                  Icon(Icons.place_rounded, size: 13, color: Colors.white.withValues(alpha: 0.8)),
+                                  Icon(Icons.place_rounded, size: 12, color: Colors.white.withValues(alpha: 0.8)),
                                   const SizedBox(width: 4),
                                   Flexible(
                                     child: Text(s.salle!,
-                                        style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.92), fontSize: 11.5),
+                                        style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.92), fontSize: 11),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis),
                                   ),
                                 ],
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: Espaces.sm),
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.arrow_forward_rounded, size: 19, color: Couleurs.royal700),
-                    ),
-                  ],
+                      const SizedBox(width: Espaces.sm),
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                        child: const Icon(Icons.arrow_forward_rounded, size: 18, color: Couleurs.royal700),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      )),
+      ),
     );
   }
 }
 
-/// Raccourci de l'accueil : icône à gauche, titre et consigne, flèche. Les quatre ont le même gabarit.
+/// Raccourci de l'accueil : icône à gauche, titre et consigne sur une ligne chacun, flèche.
 class RaccourciAccueil extends StatelessWidget {
   const RaccourciAccueil({
     super.key,
@@ -601,17 +526,17 @@ class RaccourciAccueil extends StatelessWidget {
   Widget build(BuildContext context) {
     return Carte(
       surTap: surTap,
-      rayon: Rayons.carte - 4,
-      padding: const EdgeInsets.fromLTRB(Espaces.md, Espaces.md + 2, Espaces.sm, Espaces.md + 2),
+      rayon: Rayons.carte - 6,
+      padding: const EdgeInsets.fromLTRB(Espaces.sm + 2, Espaces.sm + 2, Espaces.sm, Espaces.sm + 2),
       enfant: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(14)),
-            child: Icon(icone, size: 22, color: Couleurs.royal600),
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icone, size: 20, color: Couleurs.royal600),
           ),
-          const SizedBox(width: Espaces.md),
+          const SizedBox(width: Espaces.sm + 2),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,14 +545,17 @@ class RaccourciAccueil extends StatelessWidget {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(libelle, style: Typo.libelle.copyWith(fontSize: 12), maxLines: 1),
+                  child: Text(libelle, style: Typo.libelle.copyWith(fontSize: 12.5), maxLines: 1),
                 ),
-                const SizedBox(height: 2),
-                Text(detail, style: Typo.legendePale.copyWith(fontSize: 10.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(detail, style: Typo.legendePale.copyWith(fontSize: 10.5), maxLines: 1),
+                ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_rounded, size: 16, color: Couleurs.royal500),
+          const Icon(Icons.chevron_right_rounded, size: 18, color: Couleurs.royal500),
         ],
       ),
     );
@@ -715,7 +643,7 @@ class ActiviteRecente extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recentes = notifications.take(3).toList();
+    final recentes = notifications.take(2).toList();
     if (recentes.isEmpty) {
       return const SectionVide(
         icone: Icons.notifications_none_rounded,
