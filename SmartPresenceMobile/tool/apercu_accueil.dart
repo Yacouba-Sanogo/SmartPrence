@@ -39,6 +39,8 @@ Object? _donnees(String chemin) {
       'classeId': 1,
       'classeCode': 'L1-INFO-A',
       'classeLibelle': 'Licence 1 Informatique',
+      'responsableClasse': false,
+      'responsableClasseNom': 'Sira Keita',
     };
   }
   if (chemin.endsWith('/moi/statistiques')) {

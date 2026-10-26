@@ -32,17 +32,41 @@ public interface ClasseMapper {
     @Mapping(target = "optionLibelle", source = "option.libelle")
     @Mapping(target = "classePrecedenteId", source = "classePrecedente.id")
     @Mapping(target = "classePrecedenteCode", source = "classePrecedente.code")
+    @Mapping(target = "responsableId", expression = "java(idResponsable(entity))")
+    @Mapping(target = "responsableNom", expression = "java(nomResponsable(entity))")
     ClasseResponse toResponse(Classe entity);
 
     List<ClasseResponse> toResponseList(List<Classe> entities);
 
+    @Mapping(target = "responsableId", expression = "java(idResponsable(entity))")
+    @Mapping(target = "responsableNom", expression = "java(nomResponsable(entity))")
     ClasseDetailResponse toDetailResponse(Classe entity);
+
+    /**
+     * Le responsable, seulement s'il est toujours étudiant de la classe : une désignation que
+     * l'étudiant a quittée en changeant de classe ne doit jamais s'afficher.
+     */
+    default com.smartpresence.entity.Etudiant responsableValide(Classe classe) {
+        com.smartpresence.entity.Etudiant r = classe.getResponsable();
+        return r != null && r.getClasse() != null && r.getClasse().getId().equals(classe.getId()) ? r : null;
+    }
+
+    default java.util.UUID idResponsable(Classe classe) {
+        com.smartpresence.entity.Etudiant r = responsableValide(classe);
+        return r == null ? null : r.getId();
+    }
+
+    default String nomResponsable(Classe classe) {
+        com.smartpresence.entity.Etudiant r = responsableValide(classe);
+        return r == null ? null : (r.getPrenom() + " " + r.getNom()).trim();
+    }
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "promotion", ignore = true)
     @Mapping(target = "filiere", ignore = true)
     @Mapping(target = "option", ignore = true)
     @Mapping(target = "classePrecedente", ignore = true)
+    @Mapping(target = "responsable", ignore = true)
     @Mapping(target = "etudiants", ignore = true)
     @Mapping(target = "enseignants", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -55,6 +79,7 @@ public interface ClasseMapper {
     @Mapping(target = "filiere", ignore = true)
     @Mapping(target = "option", ignore = true)
     @Mapping(target = "classePrecedente", ignore = true)
+    @Mapping(target = "responsable", ignore = true)
     @Mapping(target = "etudiants", ignore = true)
     @Mapping(target = "enseignants", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

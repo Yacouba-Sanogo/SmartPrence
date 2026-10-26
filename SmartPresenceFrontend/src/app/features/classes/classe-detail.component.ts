@@ -17,6 +17,7 @@ import {
   initiales,
   libellePromotion,
 } from '../../core/models/classe.model';
+import { AuthService } from '../../core/services/auth.service';
 import { ClasseService } from '../../core/services/classe.service';
 import { EtatComponent } from '../../shared/ui/etat.component';
 import { IconeComponent } from '../../shared/ui/icone.component';
@@ -130,6 +131,22 @@ import { ModaleComponent } from '../../shared/ui/modale.component';
             <section class="flex flex-col gap-2">
               <h3 class="m-0 text-[11.5px] font-semibold tracking-wide text-ink-muted">Effectif</h3>
 
+              @if (actionErreur()) {
+                <p class="m-0 rounded-[10px] border border-danger-line bg-danger-bg px-3.5 py-2.5 text-[12.5px] text-danger" role="alert">
+                  {{ actionErreur() }}
+                </p>
+              }
+              <p class="m-0 text-[12.5px] text-ink-subtle">
+                @if (responsable(); as r) {
+                  Responsable de classe : <b class="text-ink">{{ r.prenom }} {{ r.nom }}</b>
+                } @else {
+                  Aucun responsable de classe désigné.
+                }
+                @if (peutDesigner()) {
+                  Désigné par l'administrateur parmi les étudiants ci-dessous.
+                }
+              </p>
+
               @if (etudiants().length === 0) {
                 <p
                   class="m-0 rounded-[11px] border border-line bg-canvas px-3.5 py-4 text-center text-[12.5px] text-ink-subtle"
@@ -142,6 +159,7 @@ import { ModaleComponent } from '../../shared/ui/modale.component';
                     <thead>
                       <tr>
                         <th class="th !pl-3.5">Étudiant</th>
+                        <th class="th">Rôle</th>
                         <th class="th">Empreinte</th>
                         <th class="th !pr-3.5">Accès mobile</th>
                       </tr>
@@ -170,6 +188,18 @@ import { ModaleComponent } from '../../shared/ui/modale.component';
                                 </span>
                               </span>
                             </div>
+                          </td>
+                          <td class="td">
+                            @if (etudiant.id === detail()?.responsableId) {
+                              <span class="badge bg-royal-50 text-royal-600">Responsable</span>
+                              @if (peutDesigner()) {
+                                <button type="button" class="ml-2 text-[12px] text-ink-subtle underline" (click)="designer(null)" [disabled]="enCours()">Retirer</button>
+                              }
+                            } @else if (peutDesigner() && etudiant.actif) {
+                              <button type="button" class="text-[12px] font-medium text-royal-600 hover:underline" (click)="designer(etudiant.id)" [disabled]="enCours()">Désigner</button>
+                            } @else {
+                              <span class="text-[12.5px] text-ink-faint">—</span>
+                            }
                           </td>
                           <td class="td">
                             @if (etudiant.enrole) {
@@ -203,6 +233,7 @@ import { ModaleComponent } from '../../shared/ui/modale.component';
 })
 export class ClasseDetailComponent implements OnInit {
   private readonly service = inject(ClasseService);
+  private readonly auth = inject(AuthService);
 
   readonly classe = input.required<Classe>();
   readonly fermer = output<void>();
@@ -210,6 +241,16 @@ export class ClasseDetailComponent implements OnInit {
   readonly detail = signal<ClasseDetail | null>(null);
   readonly chargement = signal(false);
   readonly erreur = signal('');
+  readonly actionErreur = signal('');
+  readonly enCours = signal(false);
+
+  /** Seul l'administrateur désigne le responsable de classe. */
+  readonly peutDesigner = computed(() => this.auth.aUnRole('ADMIN'));
+
+  readonly responsable = computed(() => {
+    const id = this.detail()?.responsableId;
+    return id ? (this.etudiants().find((e) => e.id === id) ?? null) : null;
+  });
 
   readonly enseignants = computed<EnseignantDeClasse[]>(() => this.detail()?.enseignants ?? []);
   readonly etudiants = computed<EtudiantDeClasse[]>(() => this.detail()?.etudiants ?? []);
@@ -240,6 +281,24 @@ export class ClasseDetailComponent implements OnInit {
 
   initialesDe(personne: { nom: string; prenom: string }): string {
     return initiales(personne);
+  }
+
+  designer(etudiantId: string | null): void {
+    if (this.enCours()) return;
+    this.enCours.set(true);
+    this.actionErreur.set('');
+    this.service.designerResponsable(this.classe().id, etudiantId).subscribe({
+      next: (classe) => {
+        this.detail.update((d) =>
+          d ? { ...d, responsableId: classe.responsableId ?? null, responsableNom: classe.responsableNom ?? null } : d,
+        );
+        this.enCours.set(false);
+      },
+      error: (e: unknown) => {
+        this.actionErreur.set(messageErreur(e));
+        this.enCours.set(false);
+      },
+    });
   }
 
   charger(): void {

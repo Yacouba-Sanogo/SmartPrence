@@ -65,16 +65,9 @@ class EnteteAccueil extends StatelessWidget {
                       const LogoEnetp(taille: 28, plaque: true),
                       const SizedBox(width: Espaces.md),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('ENETP',
-                                style: Typo.libelle.copyWith(
-                                    color: Colors.white, fontSize: 15, letterSpacing: 1.1, fontWeight: FontWeight.w700, height: 1.1)),
-                            Text('École Nationale d’Économie et de\nTechnique de Planification',
-                                style: Typo.legende.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 8, height: 1.2)),
-                          ],
-                        ),
+                        // Le logo porte déjà le sigle ENETP : on n'écrit que le nom complet.
+                        child: Text('École Nationale d’Économie et de\nTechnique de Planification',
+                            style: Typo.legende.copyWith(color: Colors.white, fontSize: 10.5, height: 1.25, fontWeight: FontWeight.w600)),
                       ),
                       _BoutonCloche(nonLues: nonLues, surTap: surNotifications),
                     ],

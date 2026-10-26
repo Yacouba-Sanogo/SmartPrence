@@ -27,6 +27,8 @@ public class ClasseDetailResponse {
     private String libelle;
     private PromotionResponse promotion;
     /** Enseignants rattachés — des agents de catégorie ENSEIGNANT. */
+    private java.util.UUID responsableId;
+    private String responsableNom;
     private Set<PersonnelResponse> enseignants;
     private List<EtudiantResponse> etudiants;
     private Instant createdAt;

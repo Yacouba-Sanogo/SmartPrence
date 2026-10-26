@@ -35,6 +35,13 @@ export class ClasseService {
     return extraireDonnees(this.http.get<ApiResponse<ClasseDetail>>(`${this.base}/${id}`));
   }
 
+  /** Désigne le responsable de la classe (administrateur seulement) ; `null` retire la désignation. */
+  designerResponsable(classeId: number, etudiantId: string | null): Observable<Classe> {
+    return extraireDonnees(
+      this.http.put<ApiResponse<Classe>>(`${this.base}/${classeId}/responsable`, { etudiantId }),
+    );
+  }
+
   creer(classe: ClasseRequest): Observable<Classe> {
     return extraireDonnees(this.http.post<ApiResponse<Classe>>(this.base, classe));
   }

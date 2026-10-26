@@ -14,6 +14,7 @@ import '../widgets/communs.dart';
 import '../widgets/fond_campus.dart';
 import '../widgets/mot_de_passe_sheet.dart';
 import 'bibliotheque_screen.dart';
+import 'etudiant/contestations_screen.dart';
 
 /// Profil de l'utilisateur connecté, ses réglages et la déconnexion.
 ///
@@ -72,6 +73,15 @@ class ProfilScreen extends StatelessWidget {
                           detail: 'Mémoires, anciens sujets, livres',
                           surTap: () => Navigator.of(context).push<void>(routeDouce<void>((_) => BibliothequeScreen(auth: auth))),
                         ),
+                        if (profil?.estEtudiant == true) ...[
+                          const Divider(height: 1, indent: 64, color: Couleurs.traitLeger),
+                          _Action(
+                            icone: Icons.rate_review_rounded,
+                            libelle: 'Mes réclamations',
+                            detail: 'Contester une note et suivre la réponse',
+                            surTap: () => Navigator.of(context).push<void>(routeDouce<void>((_) => ContestationsScreen(auth: auth))),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -203,6 +213,7 @@ class _Entete extends StatelessWidget {
                         texte: enseignant ? 'Enseignant' : 'Étudiant',
                       ),
                       if (profil?.matricule != null) _Puce(icone: Icons.badge_outlined, texte: profil!.matricule!),
+                      if (profil?.responsableClasse == true) const _Puce(icone: Icons.workspace_premium_rounded, texte: 'Responsable de classe'),
                     ],
                   ),
                   if (profil?.classeLibelle != null) ...[
@@ -452,6 +463,13 @@ class _Informations extends StatelessWidget {
       if (profil?.matricule != null) (Icons.badge_outlined, 'Matricule', profil?.matricule, true),
       if (profil?.estEtudiant == true) (Icons.groups_rounded, 'Classe', profil?.classeLibelle ?? profil?.classeCode, false),
       if (profil?.estEtudiant == true) (Icons.calendar_today_rounded, 'Promotion', profil?.promotionLibelle, false),
+      if (profil?.estEtudiant == true)
+        (
+          Icons.workspace_premium_rounded,
+          'Responsable de classe',
+          profil?.responsableClasse == true ? 'Vous' : (profil?.responsableClasseNom ?? 'Non désigné'),
+          false,
+        ),
     ];
 
     return Carte(

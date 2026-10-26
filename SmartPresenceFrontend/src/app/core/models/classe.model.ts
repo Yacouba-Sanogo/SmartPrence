@@ -18,6 +18,9 @@ export interface Classe {
   id: number;
   code: string;
   libelle: string;
+  /** Responsable de classe désigné par l'administrateur, parmi les étudiants de la classe. */
+  responsableId?: string | null;
+  responsableNom?: string | null;
   promotion: Promotion | null;
   nombreEtudiants: number;
   /** Une classe à zéro enseignant n'apparaît sur l'application mobile de personne. */

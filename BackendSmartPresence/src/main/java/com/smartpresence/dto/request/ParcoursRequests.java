@@ -11,6 +11,10 @@ public final class ParcoursRequests {
     public record ChangementClasse(@NotNull(message = "La classe est obligatoire") Long classeId) {
     }
 
+    /** Désignation du responsable de classe ; {@code etudiantId} nul retire la désignation. */
+    public record ResponsableClasse(java.util.UUID etudiantId) {
+    }
+
     public record ChoixOption(@NotNull(message = "L'option est obligatoire") Long optionId) {
     }
 }

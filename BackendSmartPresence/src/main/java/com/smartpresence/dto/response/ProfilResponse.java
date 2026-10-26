@@ -48,6 +48,11 @@ public class ProfilResponse {
     private Long classeId;
     private String classeCode;
     private String classeLibelle;
+
+    /** Vrai si l'étudiant est le responsable de sa classe. */
+    private Boolean responsableClasse;
+    /** Nom du responsable de la classe (le sien s'il l'est), pour que chacun sache à qui s'adresser. */
+    private String responsableClasseNom;
     private String promotionLibelle;
 
     /** Service de rattachement, renseigné pour un agent uniquement. */

@@ -3,7 +3,10 @@ package com.smartpresence.service.impl;
 import com.smartpresence.dto.request.ClasseRequest;
 import com.smartpresence.dto.response.ClasseDetailResponse;
 import com.smartpresence.dto.response.ClasseResponse;
+import com.smartpresence.constants.TypeNotification;
 import com.smartpresence.entity.Classe;
+import com.smartpresence.entity.Etudiant;
+import com.smartpresence.service.NotificationService;
 import com.smartpresence.entity.Personnel;
 import com.smartpresence.entity.Filiere;
 import com.smartpresence.entity.OptionFiliere;
@@ -40,6 +43,7 @@ public class ClasseServiceImpl implements ClasseService {
     private final PersonnelRepository personnelRepository;
     private final EtudiantRepository etudiantRepository;
     private final ClasseMapper classeMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -95,6 +99,42 @@ public class ClasseServiceImpl implements ClasseService {
             classe.setEnseignants(resolveEnseignants(request.getEnseignantIds()));
         }
         return classeMapper.toResponse(classeRepository.save(classe));
+    }
+
+    @Override
+    @Transactional
+    public ClasseResponse designerResponsable(Long classeId, UUID etudiantId) {
+        Classe classe = getClasse(classeId);
+        Etudiant ancien = classe.getResponsable();
+
+        Etudiant nouveau = null;
+        if (etudiantId != null) {
+            nouveau = etudiantRepository.findById(etudiantId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Étudiant", "id", etudiantId));
+            if (nouveau.getClasse() == null || !nouveau.getClasse().getId().equals(classeId)) {
+                throw new BusinessException("Le responsable doit être un étudiant de cette classe", HttpStatus.CONFLICT);
+            }
+            if (!nouveau.isActif()) {
+                throw new BusinessException("Un étudiant désactivé ne peut pas être responsable de classe", HttpStatus.CONFLICT);
+            }
+        }
+        boolean inchange = ancien != null && nouveau != null && ancien.getId().equals(nouveau.getId());
+        classe.setResponsable(nouveau);
+        Classe enregistre = classeRepository.save(classe);
+
+        if (!inchange) {
+            if (ancien != null && ancien.getUtilisateur() != null) {
+                notificationService.createNotification(ancien.getUtilisateur().getId(), TypeNotification.INFORMATION,
+                        "Responsabilité de classe terminée",
+                        "Vous n'êtes plus responsable de la classe " + classe.getCode() + ".");
+            }
+            if (nouveau != null && nouveau.getUtilisateur() != null) {
+                notificationService.createNotification(nouveau.getUtilisateur().getId(), TypeNotification.INFORMATION,
+                        "Vous êtes responsable de classe",
+                        "L'administration vous a désigné(e) responsable de la classe " + classe.getCode() + ".");
+            }
+        }
+        return classeMapper.toResponse(enregistre);
     }
 
     @Override
