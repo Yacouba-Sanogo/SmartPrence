@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/auth/auth_service.dart';
+import 'core/preferences_app.dart';
 import 'core/preferences_accueil.dart';
 import 'core/design/couleurs.dart';
 import 'core/design/theme.dart';
@@ -9,6 +10,7 @@ import 'screens/connexion_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/enseignant/shell_enseignant.dart';
 import 'screens/etudiant/shell_etudiant.dart';
+import 'widgets/bandeau_hors_ligne.dart';
 import 'widgets/communs.dart';
 
 /// Racine de l'application.
@@ -21,6 +23,8 @@ class ApplicationSmartPresence extends StatefulWidget {
 
 class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
   final _auth = AuthService();
+  final _prefs = PreferencesApp();
+  final _photo = PhotoProfil();
   final _preferences = const PreferencesAccueil();
 
   /// `null` tant que la préférence n'a pas été lue : afficher la présentation puis
@@ -30,11 +34,16 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
   @override
   void initState() {
     super.initState();
+    _prefs.charger();
+    _auth.addListener(_synchroniserPhoto);
     _auth.demarrer();
     _preferences.dejaVu().then((vu) {
       if (mounted) setState(() => _accueilVu = vu);
     });
   }
+
+  /// La photo suit le compte connecté : un autre compte ne voit jamais celle du précédent.
+  void _synchroniserPhoto() => _photo.pour(_auth.profil?.utilisateurId);
 
   Future<void> _passerLAccueil() async {
     await _preferences.marquerVu();
@@ -43,6 +52,9 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
 
   @override
   void dispose() {
+    _auth.removeListener(_synchroniserPhoto);
+    _prefs.dispose();
+    _photo.dispose();
     _auth.dispose();
     super.dispose();
   }
@@ -53,6 +65,35 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
       title: 'SmartPresence',
       debugShowCheckedModeBanner: false,
       theme: themeSmartPresence(),
+      builder: (context, child) => ListenableBuilder(
+        listenable: Listenable.merge([_prefs, _photo]),
+        builder: (context, _) {
+          final media = MediaQuery.of(context);
+          final systemeSombre = media.platformBrightness == Brightness.dark;
+          final sombre = _prefs.theme == ModeTheme.sombre || (_prefs.theme == ModeTheme.systeme && systemeSombre);
+          Widget contenu = Stack(
+            children: [
+              if (child != null) child,
+              BandeauHorsLigne(etat: _auth.client.horsLigne),
+            ],
+          );
+          if (sombre) {
+            contenu = ColorFiltered(colorFilter: const ColorFilter.matrix(matriceSombre), child: contenu);
+          }
+          return ContexteApp(
+            preferences: _prefs,
+            photo: _photo,
+            sombre: sombre,
+            child: MediaQuery(
+              data: media.copyWith(
+                textScaler: TextScaler.linear(_prefs.echelleTexte),
+                disableAnimations: _prefs.animationsReduites || media.disableAnimations,
+              ),
+              child: contenu,
+            ),
+          );
+        },
+      ),
       home: ListenableBuilder(
         listenable: _auth,
         builder: (context, _) => _ecranCourant(),
@@ -67,7 +108,11 @@ class _ApplicationSmartPresenceState extends State<ApplicationSmartPresence> {
     if (_auth.etat == EtatAuth.deconnecte) {
       return _accueilVu == false
           ? LandingScreen(auth: _auth, surCommencer: _passerLAccueil)
-          : ConnexionScreen(auth: _auth);
+          : ConnexionScreen(
+              auth: _auth,
+              // Revenir à la présentation sans effacer le fait de l'avoir déjà vue.
+              surRetour: () => setState(() => _accueilVu = false),
+            );
     }
     return _apresConnexion();
   }

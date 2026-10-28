@@ -19,6 +19,16 @@ import java.util.Optional;
 public interface ClasseRepository extends JpaRepository<Classe, Long> {
 
     /**
+     * Retire la désignation de responsable d'un étudiant partout sauf dans sa nouvelle classe.
+     *
+     * <p>Appelé quand un étudiant change de classe : sans cela, un retour dans son ancienne
+     * classe lui rendrait silencieusement un rôle que l'administrateur ne lui a plus donné.</p>
+     */
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true)
+    @Query("UPDATE Classe c SET c.responsable = null WHERE c.responsable.id = :etudiantId AND c.id <> :classeId")
+    int libererResponsable(@Param("etudiantId") java.util.UUID etudiantId, @Param("classeId") Long classeId);
+
+    /**
      * Classes dans lesquelles un enseignant intervient.
      *
      * <p>La jointure passe par la table {@code classes_enseignants}, dont la cible est

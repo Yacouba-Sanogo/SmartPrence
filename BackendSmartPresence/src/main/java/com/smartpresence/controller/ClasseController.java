@@ -53,6 +53,16 @@ public class ClasseController {
                 .body(ApiResponse.success(classeService.create(request), "Classe créée avec succès"));
     }
 
+    @Operation(summary = "Désigner le responsable de la classe",
+            description = "Parmi les étudiants de la classe ; etudiantId nul retire la désignation. Réservé à l'administrateur.")
+    @PutMapping("/{id}/responsable")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ClasseResponse>> designerResponsable(
+            @PathVariable Long id, @RequestBody com.smartpresence.dto.request.ParcoursRequests.ResponsableClasse requete) {
+        return ResponseEntity.ok(ApiResponse.success(
+                classeService.designerResponsable(id, requete.etudiantId()), "Responsable de classe enregistré"));
+    }
+
     @Operation(summary = "Modifier une classe")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")

@@ -10,9 +10,12 @@ import 'inscription_screen.dart';
 
 /// Écran de connexion — seule porte d'entrée de l'application.
 class ConnexionScreen extends StatefulWidget {
-  const ConnexionScreen({super.key, required this.auth});
+  const ConnexionScreen({super.key, required this.auth, this.surRetour});
 
   final AuthService auth;
+
+  /// Revient à la présentation. Absent : l'écran n'a pas de présentation derrière lui.
+  final VoidCallback? surRetour;
 
   @override
   State<ConnexionScreen> createState() => _ConnexionScreenState();
@@ -49,7 +52,13 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
   Widget build(BuildContext context) {
     final clavierOuvert = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Scaffold(
+    return PopScope(
+      // Le bouton retour du téléphone ramène à la présentation au lieu de quitter l'application.
+      canPop: widget.surRetour == null,
+      onPopInvokedWithResult: (revenu, _) {
+        if (!revenu) widget.surRetour?.call();
+      },
+      child: Scaffold(
       // Le dégradé occupe tout l'écran : c'est la seule page où le produit se
       // présente avant de servir, et un fond gris y ferait pauvre.
       body: Container(
@@ -95,6 +104,19 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (widget.surRetour != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: enCours ? null : widget.surRetour,
+                        icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                        label: const Text('Retour à la présentation'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: Espaces.sm),
+                        ),
+                      ),
+                    ),
                   // L'en-tête s'efface quand le clavier monte : sur un petit écran,
                   // le formulaire doit rester entièrement visible.
                   AnimatedSize(
@@ -239,7 +261,7 @@ class _ConnexionScreenState extends State<ConnexionScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _enTete() {

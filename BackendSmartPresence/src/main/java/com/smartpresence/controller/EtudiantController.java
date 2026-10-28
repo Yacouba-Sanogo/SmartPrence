@@ -34,6 +34,19 @@ public class EtudiantController {
     private final ParcoursService parcoursService;
     private final NoteService noteService;
     private final ReleveService releveService;
+    private final com.smartpresence.service.impl.ImportEtudiantsService importService;
+
+    @Operation(summary = "Inscrire une liste d'étudiants dans une classe",
+            description = "Lignes issues d'un fichier CSV, Excel ou d'une photo. Chaque ligne est traitée à part ; "
+                    + "un matricule déjà inscrit est ignoré. `simulation` vérifie sans rien enregistrer.")
+    @PostMapping("/import") @PreAuthorize("hasAnyRole('ADMIN', 'RESPONSABLE_SCOLARITE')")
+    public ResponseEntity<ApiResponse<com.smartpresence.dto.response.ImportEtudiantsResponse>> importer(
+            @Valid @RequestBody com.smartpresence.dto.request.ImportEtudiantsRequest requete) {
+        var bilan = importService.importer(requete);
+        return ResponseEntity.ok(ApiResponse.success(bilan, requete.simulation()
+                ? "Vérification terminée"
+                : bilan.creees() + " étudiant(s) inscrit(s)"));
+    }
     // ENSEIGNANT retire : sans classeId, cette route listait tous les etudiants de
     // l'etablissement, reference biometrique comprise. Un enseignant obtient l'effectif
     // de ses seules classes via GET /moi/classes/{classeId}/etudiants.

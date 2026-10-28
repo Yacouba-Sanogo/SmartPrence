@@ -63,6 +63,7 @@ public class EtudiantServiceImpl implements EtudiantService {
         assertIdentifiersAvailable(request, etudiant);
         etudiantMapper.updateEntityFromRequest(request, etudiant);
         etudiant.setClasse(getClasse(request.getClasseId()));
+        classeRepository.libererResponsable(etudiant.getId(), request.getClasseId());
         if (request.getActif() != null) etudiant.setActif(request.getActif());
         return etudiantMapper.toResponse(etudiantRepository.save(etudiant));
     }

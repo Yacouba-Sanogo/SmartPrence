@@ -84,6 +84,11 @@ public class ProfilServiceImpl implements ProfilService {
         Optional<Etudiant> etudiant = etudiantRepository.findByUtilisateurId(utilisateurId);
         if (etudiant.isPresent()) {
             Etudiant e = etudiant.get();
+            Etudiant responsable = e.getClasse().getResponsable();
+            if (responsable != null && (responsable.getClasse() == null
+                    || !responsable.getClasse().getId().equals(e.getClasse().getId()))) {
+                responsable = null;
+            }
             return profil
                     .typeProfil("ETUDIANT")
                     .profilId(e.getId())
@@ -93,6 +98,9 @@ public class ProfilServiceImpl implements ProfilService {
                     .classeLibelle(e.getClasse().getLibelle())
                     .promotionLibelle(e.getClasse().getPromotion() == null
                             ? null : e.getClasse().getPromotion().getLibelle())
+                    .responsableClasse(responsable != null && responsable.getId().equals(e.getId()))
+                    .responsableClasseNom(responsable == null ? null
+                            : (responsable.getPrenom() + " " + responsable.getNom()).trim())
                     .build();
         }
 

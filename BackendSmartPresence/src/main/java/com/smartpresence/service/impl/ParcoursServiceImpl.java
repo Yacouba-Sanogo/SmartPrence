@@ -49,6 +49,7 @@ public class ParcoursServiceImpl implements ParcoursService {
         Classe cible = classeRepository.findById(classeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Classe", "id", classeId));
         etudiant.setClasse(cible);
+        classeRepository.libererResponsable(etudiant.getId(), cible.getId());
         // Une option choisie pour une autre filière n'a plus de sens dans la nouvelle.
         if (etudiant.getOptionChoisie() != null && !memeFiliere(etudiant.getOptionChoisie(), cible)) {
             etudiant.setOptionChoisie(null);
@@ -111,6 +112,7 @@ public class ParcoursServiceImpl implements ParcoursService {
         if (appliquer) {
             deplacements.forEach((etudiant, destination) -> {
                 etudiant.setClasse(destination);
+                classeRepository.libererResponsable(etudiant.getId(), destination.getId());
                 // L'option servait à choisir la classe ; la nouvelle classe porte la sienne.
                 etudiantRepository.save(etudiant);
             });

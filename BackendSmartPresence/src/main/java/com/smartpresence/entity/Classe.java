@@ -59,7 +59,7 @@ import java.util.Set;
 )
 @Getter
 @Setter
-@ToString(exclude = {"etudiants", "enseignants", "promotion", "classePrecedente"})
+@ToString(exclude = {"etudiants", "enseignants", "promotion", "classePrecedente", "responsable"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Classe extends BaseAuditableEntity {
 
@@ -134,6 +134,15 @@ public class Classe extends BaseAuditableEntity {
      * <p>Initialisé en {@link ArrayList} mutable pour permettre l'ajout depuis JPA
      * tout en contrôlant l'accès côté service via les DTO.</p>
      */
+    /**
+     * Responsable de classe (le « délégué »), désigné par l'administrateur parmi les étudiants de la
+     * classe. Il change de classe ou quitte l'établissement : la désignation tombe d'elle-même.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsable_id",
+            foreignKey = @ForeignKey(name = "fk_classes_responsable"))
+    private Etudiant responsable;
+
     @OneToMany(mappedBy = "classe", fetch = FetchType.LAZY)
     private List<Etudiant> etudiants = new ArrayList<>();
 

@@ -17,7 +17,7 @@ export interface EntreeNavigation {
 }
 
 /** Files d'attente susceptibles d'alimenter un compteur de la barre latérale. */
-export type CompteurNavigation = 'justificatifs' | 'signalements';
+export type CompteurNavigation = 'justificatifs' | 'signalements' | 'bibliotheque';
 
 export interface GroupeNavigation {
   titre: string;
@@ -87,6 +87,13 @@ export const NAVIGATION: readonly GroupeNavigation[] = [
         icone: 'info',
         roles: ['ADMIN', 'RESPONSABLE_SCOLARITE'],
         compteur: 'justificatifs',
+      },
+      {
+        chemin: '/bibliotheque',
+        libelle: 'Bibliothèque',
+        icone: 'livre',
+        roles: ['ADMIN', 'RESPONSABLE_SCOLARITE', 'SUPERVISEUR'],
+        compteur: 'bibliotheque',
       },
       {
         chemin: '/annonces',

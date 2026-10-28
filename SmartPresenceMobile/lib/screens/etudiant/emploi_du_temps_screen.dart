@@ -333,50 +333,53 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
     );
   }
 
-  /// Une journée : son nom à la verticale, puis un tableau Séance · Salle · Matière · Horaire.
+  /// Une journée : son nom et sa date en tête, puis une ligne par séance (horaire, matière, salle, rang).
   Widget _journee(DateTime jour, List<Seance> seances) {
     final aujourdhui = Dates.estAujourdhui(jour);
     final nom = Dates.jours[jour.weekday - 1];
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: Espaces.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 22,
-            child: RotatedBox(
-              quarterTurns: 3,
-              child: Text(
-                nom.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: Typo.suretitre.copyWith(
-                    letterSpacing: 1.4,
-                    color: aujourdhui ? Couleurs.royal600 : Couleurs.encreDiscrete),
-              ),
-            ),
-          ),
-          const SizedBox(width: Espaces.xs),
-          Expanded(
-            child: Carte(
-              rayon: Rayons.carte,
-              ombre: Couleurs.ombreFlottante,
-              padding: const EdgeInsets.fromLTRB(
-                  Espaces.lg, Espaces.md, Espaces.lg, Espaces.sm),
-              enfant: Column(
-                children: [
-                  _ligneTableau(
-                    ['Séance', 'Salle', 'Matière', 'Horaire'],
-                    entete: true,
+      padding: const EdgeInsets.only(bottom: Espaces.md + 2),
+      child: Carte(
+        rayon: Rayons.carte,
+        padding: const EdgeInsets.fromLTRB(Espaces.lg, Espaces.md + 2, Espaces.lg, Espaces.sm),
+        enfant: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: aujourdhui ? Couleurs.royal600 : Couleurs.encrePale,
                   ),
-                  Divider(height: Espaces.lg, color: Couleurs.traitLeger),
-                  for (var i = 0; i < seances.length; i++)
-                    _ligneSeance(i + 1, seances[i]),
-                ],
-              ),
+                ),
+                const SizedBox(width: Espaces.sm),
+                Text(
+                  '${nom[0].toUpperCase()}${nom.substring(1)} ${Dates.courte(jour)}',
+                  style: Typo.libelle.copyWith(fontSize: 14, color: aujourdhui ? Couleurs.royal600 : Couleurs.encre),
+                ),
+                const Spacer(),
+                if (aujourdhui)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(color: Couleurs.royal50, borderRadius: BorderRadius.circular(Rayons.pilule)),
+                    child: Text("Aujourd'hui",
+                        style: Typo.legende.copyWith(color: Couleurs.royal600, fontSize: 10.5, fontWeight: FontWeight.w700)),
+                  )
+                else
+                  Text('${seances.length} séance${seances.length > 1 ? 's' : ''}', style: Typo.legendePale),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: Espaces.sm),
+            for (var i = 0; i < seances.length; i++) ...[
+              if (i > 0) const Divider(height: 1, color: Couleurs.traitLeger),
+              _ligneSeance(i + 1, seances[i]),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -384,40 +387,93 @@ class _EmploiDuTempsScreenState extends State<EmploiDuTempsScreen> {
   Widget _ligneSeance(int rang, Seance s) {
     final annulee = s.statut == StatutSeance.annulee;
     final enCours = s.seDerouleMaintenant;
+    final accent = annulee ? Couleurs.dangerVif : (enCours ? Couleurs.royal600 : Couleurs.royal300);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: _ligneTableau(
-        [
-          rang == 1 ? '1re' : '${rang}e',
-          s.salle ?? '—',
-          s.matiere,
-          '${Dates.heure(s.debut)}–${Dates.heure(s.fin)}',
-        ],
-        barre: annulee,
-        accent: enCours,
+      padding: const EdgeInsets.symmetric(vertical: Espaces.md),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 50,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(Dates.heure(s.debut), style: Typo.mono(13, graisse: FontWeight.w700, couleur: Couleurs.encre)),
+                  Text(Dates.heure(s.fin), style: Typo.mono(12, couleur: Couleurs.encreDiscrete)),
+                ],
+              ),
+            ),
+            Container(width: 4, margin: const EdgeInsets.only(right: Espaces.md), decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2))),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.matiere,
+                    style: Typo.libelle.copyWith(
+                      fontSize: 14,
+                      decoration: annulee ? TextDecoration.lineThrough : null,
+                      color: annulee ? Couleurs.encreDiscrete : Couleurs.encre,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if (s.salle != null) _Etiquette(icone: Icons.place_outlined, texte: s.salle!),
+                      _Etiquette(icone: Icons.timelapse_rounded, texte: _duree(s)),
+                      _Etiquette(texte: rang == 1 ? '1re séance' : '${rang}e séance'),
+                      if (enCours) const _Etiquette(texte: 'En cours', plein: true),
+                      if (annulee) const _Etiquette(texte: 'Annulée', alerte: true),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _ligneTableau(List<String> c,
-      {bool entete = false, bool barre = false, bool accent = false}) {
-    final style = entete
-        ? Typo.suretitre.copyWith(fontSize: 10)
-        : Typo.libelle.copyWith(
-            fontSize: 12.5,
-            color: accent ? Couleurs.royal600 : Couleurs.royal800,
-            fontWeight: accent ? FontWeight.w700 : FontWeight.w600,
-            decoration: barre ? TextDecoration.lineThrough : null);
+  /// « 2 h », « 1 h 30 » : la durée se lit plus vite que deux horaires à soustraire.
+  String _duree(Seance s) {
+    final minutes = s.fin.difference(s.debut).inMinutes;
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h == 0) return '$m min';
+    return m == 0 ? '$h h' : '$h h ${m.toString().padLeft(2, '0')}';
+  }
+}
 
-    Widget cellule(String t, int flex) => Expanded(
-          flex: flex,
-          child: Text(t, style: style, maxLines: 2, overflow: TextOverflow.ellipsis),
-        );
+class _Etiquette extends StatelessWidget {
+  const _Etiquette({required this.texte, this.icone, this.plein = false, this.alerte = false});
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [cellule(c[0], 2), cellule(c[1], 3), cellule(c[2], 5), cellule(c[3], 5)],
+  final String texte;
+  final IconData? icone;
+  final bool plein;
+  final bool alerte;
+
+  @override
+  Widget build(BuildContext context) {
+    final fond = plein ? Couleurs.royal600 : (alerte ? Couleurs.dangerFond : Couleurs.traitPale);
+    final teinte = plein ? Colors.white : (alerte ? Couleurs.danger : Couleurs.encreAttenuee);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: fond, borderRadius: BorderRadius.circular(Rayons.pilule)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icone != null) ...[Icon(icone, size: 12, color: teinte), const SizedBox(width: 3)],
+          Text(texte, style: Typo.legende.copyWith(fontSize: 10.5, fontWeight: FontWeight.w600, color: teinte)),
+        ],
+      ),
     );
   }
 }

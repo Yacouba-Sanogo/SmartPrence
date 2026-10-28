@@ -40,6 +40,10 @@ public class ClasseResponse {
      * signalerait sans ce compteur.</p>
      */
     private int nombreEnseignants;
+
+    /** Responsable de classe désigné par l'administrateur ; absent si personne ne l'est. */
+    private java.util.UUID responsableId;
+    private String responsableNom;
     private Instant createdAt;
     private Instant updatedAt;
 }

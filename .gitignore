@@ -37,3 +37,6 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 *.log
+
+# Comptes de test avec mots de passe : jamais versionnes.
+COMPTES-DE-TEST.local.md

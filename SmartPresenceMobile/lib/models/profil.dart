@@ -27,6 +27,8 @@ class Profil {
     this.classeLibelle,
     this.promotionLibelle,
     this.service,
+    this.responsableClasse = false,
+    this.responsableClasseNom,
   });
 
   final String utilisateurId;
@@ -45,6 +47,12 @@ class Profil {
   final String? promotionLibelle;
 
   final String? service;
+
+  /// Vrai si l'étudiant est le responsable de sa classe, désigné par l'administrateur.
+  final bool responsableClasse;
+
+  /// Nom du responsable de la classe (le sien s'il l'est).
+  final String? responsableClasseNom;
 
   bool get estEtudiant => type == TypeProfil.etudiant;
   bool get estEnseignant => type == TypeProfil.enseignant;
@@ -78,6 +86,8 @@ class Profil {
       classeLibelle: json['classeLibelle'] as String?,
       promotionLibelle: json['promotionLibelle'] as String?,
       service: json['service'] as String?,
+      responsableClasse: json['responsableClasse'] == true,
+      responsableClasseNom: json['responsableClasseNom'] as String?,
     );
   }
 }
